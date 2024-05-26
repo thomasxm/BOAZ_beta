@@ -1,0 +1,8 @@
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/intrinsics_gen.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/omp_gen.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/acc_gen.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/RISCVTargetParserTableGen.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/clang-tablegen-targets.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/avcleaner.bin.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/edit_cache.dir
+/home/kali/new_evasion_tools/avcleaner-master/build_2/CMakeFiles/rebuild_cache.dir
