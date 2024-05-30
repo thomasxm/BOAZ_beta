@@ -1,4 +1,4 @@
-./build_2/avcleaner.bin "$1" --strings=true -- -D "_WIN64" -D "_UNICODE" -D "UNICODE" -D "_WINSOCK_DEPRECATED_NO_WARNINGS"\
+../build_2/avcleaner.bin "$1" --strings=true -- -D "_WIN64" -D "_UNICODE" -D "UNICODE" -D "_WINSOCK_DEPRECATED_NO_WARNINGS"\
      "-I" "/usr/lib/clang/16.0.6/include/" \
      "-I" "../Include/10.0.22621.0/ucrt" \
      "-I" "../include/10.0.22621.0/shared" \

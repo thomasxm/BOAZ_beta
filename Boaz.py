@@ -499,7 +499,7 @@ def run_obfuscation(loader_path):
 
     try:
         # subprocess.run(['sudo', 'bash', 'obfuscate_file.sh', loader_path], check=True)
-        subprocess.run(['sudo', 'bash', 'obfuscate_file.sh', loader_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['sudo', 'bash', 'obfuscate/obfuscate_file.sh', loader_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Check if the patch file exists and rename it to obf_file
         if os.path.exists(patch_file):
             os.rename(patch_file, obf_file)
