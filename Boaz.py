@@ -50,7 +50,7 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
     if encode:
         random_count = random.randint(1, 100)  # Generate a random count between 1 and 100
         encoded_output_path = output_path + "1.bin"  # Specify the encoded output file path
-        encode_cmd = ['./sgn', '-a', '64', '-i', output_path + ".bin", '-o', encoded_output_path]
+        encode_cmd = ['./encoders/sgn', '-a', '64', '-i', output_path + ".bin", '-o', encoded_output_path]
         ## TODO: SGN would render the shellcode unusable in some cases, so it is disabled for now
         # encode_cmd = ['./sgn', '-a', '64', '-v', '-c', str(random_count), '-i', output_path + ".bin", '-o', encoded_output_path]
         try:
