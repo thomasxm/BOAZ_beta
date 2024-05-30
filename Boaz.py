@@ -743,7 +743,7 @@ def strip_binary(binary_path):
     """
     try:
         subprocess.run(['strip', '--strip-all', binary_path], check=True)
-        print(f"[+] Successfully stripped the binary: {binary_path}")
+        print(f"\033[92m [+] Successfully stripped the binary: {binary_path} \033[0m")
     except subprocess.CalledProcessError as e:
         print(f"[-] Failed to strip the binary {binary_path}: {e}")
 
@@ -843,13 +843,24 @@ def main():
     41. Custom Stack PI (remote) with Decoy code execution
     """
 
+    def check_non_negative(value):
+        ivalue = int(value)
+        if ivalue < 0:
+            raise argparse.ArgumentTypeError("%s is an invalid non-negative int value" % value)
+        return ivalue
+
+    def print_selected_options(args):
+        for arg, value in vars(args).items():
+            if value is not None and value is not False:
+                print(f"[+] Option \033[95m'{arg}'\033[0m is selected with argument:\033[91m {value} \033[0m")
+                
     parser = argparse.ArgumentParser(
         description='Process loader and shellcode.',
         epilog=loaders_description,
         formatter_class=argparse.RawDescriptionHelpFormatter 
     )
 
-    parser.add_argument('-f', required=True, help='Path to binary.exe')
+    parser.add_argument('-f', '--input-file', required=True, help='Path to binary.exe')
     parser.add_argument('-o', '--output-file', help='Optional: Specify the output file path and name. If not provided, a random file name will be used in the ./output directory.')
 
     parser.add_argument('-divide', action='store_true', help='Divide flag (True or False)')
@@ -872,7 +883,7 @@ def main():
     parser.add_argument('-g', '--god-speed', action='store_true', help='Enable advanced unhooking technique Peruns Fart (God Speed)')
 
     parser.add_argument('-t', '--shellcode-type', default='donut', choices=['donut', 'pe2sh', 'rc4', 'amber'], help='Shellcode generation tool: donut (default), pe2sh, rc4, or amber')
-    parser.add_argument('-sgn', '--encode-shellcode', action='store_true', help='Encode the generated shellcode using sgn tool.')
+    parser.add_argument('-sgn', '--encode-sgn', action='store_true', help='Encode the generated shellcode using sgn tool.')
 
     ## TODO: Add support for other encoding types
     parser.add_argument('-e', '--encoding', choices=['uuid', 'xor', 'mac', 'ipv4', 'base64', 'base58', 'aes', 'aes2'], help='Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass logical path hijacking. Other encoders are under development. ')
@@ -890,6 +901,9 @@ def main():
 
     args = parser.parse_args()
 
+
+    print_selected_options(args)
+
     # Adjust shellcode_file name based on the shellcode type
     if args.shellcode_type == 'donut':
         shellcode_file = 'note_donut'
@@ -904,7 +918,7 @@ def main():
         shellcode_file = 'note_donut'
 
 
-    generate_shellcode(args.f, shellcode_file, args.shellcode_type, args.encode_shellcode, args.encoding)
+    generate_shellcode(args.input_file, shellcode_file, args.shellcode_type, args.encode_sgn, args.encoding)
 
     shellcode = read_shellcode(shellcode_file)
     template_loader_path = f'loaders/loader_template_{args.loader}.c' if args.loader != 1 else 'loaders/loader1.c'
@@ -974,7 +988,8 @@ def main():
 
     strip_binary(output_file_path)
 
-    # cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
+    ## uncomment the below line to clean up obfuscation code base: 
+    cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
 
     ### Reduce the entropy to 6.1: 
     if args.entropy == 1:
@@ -1007,8 +1022,7 @@ def main():
         # If the file does not exist or the user has chosen to overwrite it, proceed with signing
         carbon_copy_command = f"python3 signature/CarbonCopy.py {website} 443 {output_file_path} {signed_output_file_path}"
         subprocess.run(carbon_copy_command, shell=True, check=True)
-        print(f"Signed binary generated: {signed_output_file_path}")
-
+        print(f"\033[95m [+] Signed binary generated \033[0m: \033[92m{signed_output_file_path}\033[0m")
 
 
 if __name__ == '__main__':
