@@ -211,6 +211,7 @@ A special thanks to the researchers and developers whose work has inspired and m
 * [Stardust](https://github.com/Cracked5pider/Stardust/tree/main)
 * [Carbon Copy](https://github.com/paranoidninja/CarbonCopy)
 * [Shikata ga nai](https://github.com/EgeBalci/sgn)
+* [x86matthew](https://www.x86matthew.com/)
 * [Red Team Notes](https://www.ired.team/)
 
 And many more blogs and articles. Please feel free to add more...
