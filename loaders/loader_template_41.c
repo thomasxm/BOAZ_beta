@@ -395,15 +395,27 @@ int main(int argc, char *argv[]) {
     printf("[+] Found restoreExInTrampoline at: 0x%p\n", restoreExInTrampoline);
     memcpy(restoreExInTrampoline, &allocatedAddress, 8);
     //print the address of trampolineEx
-
-    
+    BOOL result = FlushInstructionCache(pi.hProcess, NULL, 0);
+    if(result) {
+        printf("[+] FlushInstructionCache success\n");
+    } else {
+        DWORD error = GetLastError();
+        printf("[-] FlushInstructionCache failed with error code %lu\n", error);
+    }
 
     LPVOID sizeExInTrampoline = (LPVOID)FindPattern((DWORD_PTR)&trampoline, trampolineSize, (PBYTE)"\x11\x11\x11\x11\x11\x11\x11\x11", (PCHAR)"xxxxxxxx");
     printf("[+] Found sizeExInTrampoline at: 0x%p\n", sizeExInTrampoline);
     // // we need to ensure allocatedsize is of 4 bytes size, we can use memcpy to copy the 4 bytes to the trampoline:
     memcpy(sizeExInTrampoline, &allocatedsize, sizeof(SIZE_T));
     // memcpy(sizeExInTrampoline, &allocatedsize, 8);
-
+    // call FlushInstructionCache
+    result = FlushInstructionCache(pi.hProcess, NULL, 0);
+    if(result) {
+        printf("[+] FlushInstructionCache success\n");
+    } else {
+        DWORD error = GetLastError();
+        printf("[-] FlushInstructionCache failed with error code %lu\n", error);
+    }
 
     // Create a trampoline code with space in between. 
     PVOID trampolineEx = (BYTE*)trampolineAddr + SIZE_T(0x0000000000004000);
