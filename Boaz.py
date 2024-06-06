@@ -617,6 +617,7 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         compile_command.append('assembly.o')
     if loader_number == 1 or 39 or 40 or 41:
         compile_command.append('assembly.o')
+        compile_command.append('-luuid')
 
     try:
         subprocess.run(compile_command, check=True)

