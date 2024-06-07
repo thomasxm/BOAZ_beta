@@ -493,12 +493,11 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
 
 
 def run_obfuscation(loader_path):
-    # Predefine obf_file outside the try-except block to ensure it is accessible
+
     obf_file = loader_path.replace('.c', '_obf.c')
-    patch_file = loader_path + '.patch'  # Also define patch_file here for consistency
+    patch_file = loader_path + '.patch' 
 
     try:
-        # subprocess.run(['sudo', 'bash', 'obfuscate_file.sh', loader_path], check=True)
         subprocess.run(['sudo', 'bash', './obfuscate/obfuscate_file.sh', loader_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Check if the patch file exists and rename it to obf_file
         if os.path.exists(patch_file):
@@ -511,7 +510,7 @@ def run_obfuscation(loader_path):
         if os.path.exists(patch_file):
             os.rename(patch_file, obf_file)
 
-# def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulation, insert_junk_api_calls, api_unhooking=False, mllvm_options=None, god_speed=False, encoding=None, loader_number=1, dream=None, etw=False):
+
 def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulation, insert_junk_api_calls, api_unhooking=False, mllvm_options=None, god_speed=False, encoding=None, loader_number=1, dream=None, etw=False, compile_as_dll=False, compile_as_cpl = False):
 
     if loader_number == 1 or 39 or 40 or 41:
@@ -966,6 +965,7 @@ def main():
     write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding, args.dream, file_name, args.etw, compile_as_dll=args.dll, compile_as_cpl=args.cpl)
 
     if args.obfuscate:
+        print("Obfuscating the loader code...\n")
         run_obfuscation(output_loader_path)
         obfuscated_loader_path = output_loader_path.replace('.c', '_obf.c')
     else:
