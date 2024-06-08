@@ -4,6 +4,12 @@ T1055 Process Injection
 Custom Stack PI (remote)
 
 Jump code example, decoy
+# Date 2023
+#
+# This file is part of the Boaz tool
+# Copyright (c) 2019-2024 Thomas M
+# Licensed under the GPLv3 or later.
+#
 **/
 /***
 

