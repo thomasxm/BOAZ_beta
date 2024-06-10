@@ -1,5 +1,7 @@
 # Boaz Mini-Evasion Tool (for educational purpose)
 
+
+
 ![c](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white) ![python](https://img.shields.io/badge/Python-00599C?style=for-the-badge&logo=python&logoColor=red) ![assembly](https://img.shields.io/badge/ASSEMBLY-ED8B00?style=for-the-badge&logo=Assembly&logoColor=white) ![windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
 <img width="423" alt="loglo" src="https://github.com/thomasxm/Boaz_beta/assets/44269971/a5427ccc-e2ed-4cc3-ab81-084de691b23f">
@@ -230,6 +232,7 @@ For any queries or contributions, please contact the repository owner.
 
 
 
+![Boaz_logo3](https://github.com/thomasxm/Boaz_beta/assets/44269971/0118a0cf-9cd9-48df-8f20-37a059e4bf6a)
 
 
 
