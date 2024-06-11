@@ -878,7 +878,7 @@ def main():
     4.  UUID manual injection
     5.  Remote mockingJay
     6.  Local thread hijacking 
-    7.  Stealth local mockingJay
+    7.  Function pointer invoke local injection
     8.  Ninja_syscall2 
     9.  RW local mockingJay
     10. Ninja syscall 1
