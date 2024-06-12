@@ -75,8 +75,8 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
 
 ## Prerequisites
 
-- Linux environment with Wine configured.
-- CMake, Git, GCC, G++, MingW and other build essentials installed.
+- Linux environment with Wine configured. Kali Linux or other Debian prefered. 
+- CMake, Git, GCC, G++, MingW, LLVM and other build essentials installed.
 
 ## Installation and Compilation
 
