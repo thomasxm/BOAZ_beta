@@ -83,6 +83,11 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
 1. **Install required packages:**:
 
 ```console
+git clone https://github.com/thomasxm/Boaz_beta/
+cd Boaz_beta
+```
+
+```console
 sudo bash requirements.sh
 ```
 
@@ -94,11 +99,6 @@ requirements.sh will install LLVM, which takes a while to complete. BOAZ can be 
 ## Usage
 
 Example usage:
-
-```console
-git clone https://github.com/thomasxm/Boaz_beta/
-cd Boaz_beta
-```
 
 ```console
 python3 Boaz.py -f ~/testing_payloads/notepad_64.exe -o ./alice_notepad.exe -t donut -obf -l 1 -c pluto -e uuid -g
