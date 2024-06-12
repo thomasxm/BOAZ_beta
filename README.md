@@ -106,18 +106,19 @@ python3 Boaz.py -h
 ```
 
 ```bash
-usage: Boaz.py [-h] -f F [-o OUTPUT_FILE] [-divide] [-l LOADER] [-dll] [-cpl] [-sleep] [-a] [-etw] [-j] [-dream [DREAM]] [-u]
-               [-g] [-t {donut,pe2sh,rc4,amber}] [-sgn] [-e {uuid,xor,mac,ipv4,base64,base58,aes,aes2}]
-               [-c {mingw,pluto,akira}] [-mllvm MLLVM] [-obf] [-w [SYSWHISPER]] [-entropy {1,2}] [-s [SIGN_CERTIFICATE]]
+usage: Boaz.py [-h] -f INPUT_FILE [-o OUTPUT_FILE] [-divide] [-l LOADER] [-dll] [-cpl] [-sleep] [-a] [-etw] [-j] [-dream [DREAM]] [-u] [-g]
+               [-t {donut,pe2sh,rc4,amber}] [-sd] [-sgn] [-e {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}] [-c {mingw,pluto,akira}]
+               [-mllvm MLLVM] [-obf] [-w [SYSWHISPER]] [-entropy {1,2}] [-b [BINDER]] [-s [SIGN_CERTIFICATE]]
 
 Process loader and shellcode.
 
 options:
   -h, --help            show this help message and exit
-  -f F                  Path to binary.exe
+  -f INPUT_FILE, --input-file INPUT_FILE
+                        Path to binary.exe
   -o OUTPUT_FILE, --output-file OUTPUT_FILE
-                        Optional: Specify the output file path and name. If not provided, a random file name will be used in
-                        the ./output directory.
+                        Optional: Specify the output file path and name. If not provided, a random file name will be used in the ./output
+                        directory.
   -divide               Divide flag (True or False)
   -l LOADER, --loader LOADER
                         Loader number (must be a non-negative integer)
@@ -127,28 +128,29 @@ options:
   -a, --anti-emulation  Anti-emulation flag (True or False)
   -etw                  Enable ETW patching functionality
   -j, --junk-api        Insert junk API function call at a random location in the main function (5 API functions)
-  -dream [DREAM]        Optional: Sleep with encrypted stacks for specified time in milliseconds. Defaults to 1500ms if not
-                        provided.
+  -dream [DREAM]        Optional: Sleep with encrypted stacks for specified time in milliseconds. Defaults to 1500ms if not provided.
   -u, --api-unhooking   Enable API unhooking functionality
   -g, --god-speed       Enable advanced unhooking technique Peruns Fart (God Speed)
   -t {donut,pe2sh,rc4,amber}, --shellcode-type {donut,pe2sh,rc4,amber}
                         Shellcode generation tool: donut (default), pe2sh, rc4, or amber
-  -sgn, --encode-shellcode
-                        Encode the generated shellcode using sgn tool.
-  -e {uuid,xor,mac,ipv4,base64,base58,aes,aes2}, --encoding {uuid,xor,mac,ipv4,base64,base58,aes,aes2}
-                        Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES
-                        decryption to bypass logical path hijacking. Other encoders are under development.
+  -sd, --star_dust      Enable Stardust PIC generator, input should be .bin
+  -sgn, --encode-sgn    Encode the generated shellcode using sgn tool.
+  -e {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}, --encoding {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}
+                        Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass
+                        logical path hijacking. Other encoders are under development.
   -c {mingw,pluto,akira}, --compiler {mingw,pluto,akira}
                         Compiler choice: mingw (default), pluto, or akira
   -mllvm MLLVM          LLVM passes for Pluto or Akira compiler
   -obf, --obfuscate     Enable obfuscation (optional)
   -w [SYSWHISPER], --syswhisper [SYSWHISPER]
-                        Optional: Use SysWhisper for direct syscalls. 1 for random syscall jumps (default), 2 for compiling
-                        with MingW and NASM.
+                        Optional: Use SysWhisper for direct syscalls. 1 for random syscall jumps (default), 2 for compiling with MingW and NASM.
   -entropy {1,2}        Entropy level for post-processing the output binary. 1 for null_byte.py, 2 for pokemon.py
+  -b [BINDER], --binder [BINDER]
+                        Optional: Path to a utility for binding. Defaults to binder/calc.exe if not provided.
   -s [SIGN_CERTIFICATE], --sign-certificate [SIGN_CERTIFICATE]
-                        Optional: Sign the payload using a cloned certificate from the specified website. Defaults to
-                        www.microsoft.com if no website is provided. 
+                        Optional: Sign the payload using a cloned certificate from the specified website. Defaults to www.microsoft.com if no
+                        website is provided.
+
 ```
 
 
