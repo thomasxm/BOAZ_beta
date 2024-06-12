@@ -82,7 +82,7 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
 
 1. **Install required packages:**:
 
-```bash
+```console
 sudo bash requirements.sh
 ```
 
@@ -95,17 +95,17 @@ requirements.sh will install LLVM, which takes a while to complete. BOAZ can be 
 
 Example usage:
 
-```bash
+```console
 python3 Boaz.py -f ~/testing_payloads/notepad_64.exe -o ./alice_notepad.exe -t donut -obf -l 1 -c pluto -e uuid -g
 ```
 
 Refer to the help command for more details on usage:
 
-```bash
+```console
 python3 Boaz.py -h 
 ```
 
-```console
+```bash
 usage: Boaz.py [-h] -f INPUT_FILE [-o OUTPUT_FILE] [-divide] [-l LOADER] [-dll] [-cpl] [-sleep] [-a] [-etw] [-j] [-dream [DREAM]] [-u] [-g]
                [-t {donut,pe2sh,rc4,amber}] [-sd] [-sgn] [-e {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}] [-c {mingw,pluto,akira}]
                [-mllvm MLLVM] [-obf] [-w [SYSWHISPER]] [-entropy {1,2}] [-b [BINDER]] [-s [SIGN_CERTIFICATE]]
@@ -188,7 +188,9 @@ Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mi
 
 ## Contributing
 
-We welcome contributions to improve the Boaz Evasion Tool. Please review `CONTRIBUTING.md` for guidelines on how to submit contributions. This is under development, please feel free to reach out to me @ThomasMeeeee on X for any suggestions! 
+We welcome contributions to improve the Boaz Evasion Tool. Please review `CONTRIBUTING.md` for guidelines on how to submit contributions. 
+We welcome [pull requests](https://github.com/thomasxm/Boaz_beta/pulls) and [issues](https://github.com/thomasxm/Boaz_beta/issues)
+This is in development, please feel free to reach out to me @ThomasMeeeee on X for any suggestions! 
 
 ## License
 
