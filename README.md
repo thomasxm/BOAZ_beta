@@ -189,7 +189,11 @@ Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mi
 ## Contributing
 
 We welcome contributions to improve the Boaz Evasion Tool. Please review `CONTRIBUTING.md` for guidelines on how to submit contributions. 
-We welcome [pull requests](https://github.com/thomasxm/Boaz_beta/pulls) and [issues](https://github.com/thomasxm/Boaz_beta/issues)
+
+
+We welcome submissions to [pull requests](https://github.com/thomasxm/Boaz_beta/pulls) and [issues](https://github.com/thomasxm/Boaz_beta/issues).
+
+
 This is in development, please feel free to reach out to me @ThomasMeeeee on X for any suggestions! 
 
 ## License
