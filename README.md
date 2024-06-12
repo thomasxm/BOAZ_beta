@@ -196,7 +196,7 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 
 ## Acknowledgments
 
-A special thanks to the researchers and developers whose work has inspired and made this tool possible.
+A special thanks to the researchers and developers whose work has inspired, contributed to, and made this tool possible: 
 
 * [Inceptor - Bypass AV-EDR solutions combining well known techniques](https://github.com/klezVirus/inceptor/blob/main/slides/Inceptor%20-%20Bypass%20AV-EDR%20solutions%20combining%20well%20known%20techniques.pdf)
 
