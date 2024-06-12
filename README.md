@@ -96,6 +96,11 @@ requirements.sh will install LLVM, which takes a while to complete. BOAZ can be 
 Example usage:
 
 ```console
+git clone https://github.com/thomasxm/Boaz_beta/
+cd Boaz_beta
+```
+
+```console
 python3 Boaz.py -f ~/testing_payloads/notepad_64.exe -o ./alice_notepad.exe -t donut -obf -l 1 -c pluto -e uuid -g
 ```
 
