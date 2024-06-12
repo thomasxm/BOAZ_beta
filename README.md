@@ -105,7 +105,7 @@ Refer to the help command for more details on usage:
 python3 Boaz.py -h 
 ```
 
-```bash
+```console
 usage: Boaz.py [-h] -f INPUT_FILE [-o OUTPUT_FILE] [-divide] [-l LOADER] [-dll] [-cpl] [-sleep] [-a] [-etw] [-j] [-dream [DREAM]] [-u] [-g]
                [-t {donut,pe2sh,rc4,amber}] [-sd] [-sgn] [-e {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}] [-c {mingw,pluto,akira}]
                [-mllvm MLLVM] [-obf] [-w [SYSWHISPER]] [-entropy {1,2}] [-b [BINDER]] [-s [SIGN_CERTIFICATE]]
