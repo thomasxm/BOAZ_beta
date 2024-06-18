@@ -387,7 +387,6 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
         if (CustomBase45ToBinary(base45, strlen(base45), magiccodePtr, &decodedSize)) {
             printf("Failed to decode base45 string\\n");
             free(magiccode); 
-            return -2;
         }
         printf("[+] MagicCodePtr size: %lu bytes\\n", sizeof(magiccodePtr));
         printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
@@ -401,7 +400,6 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
         if (!CustomCryptStringToBinaryA(base64, strlen(base64), magiccodePtr, &decodedSize)) {
             printf("Failed to decode base64 string\\n");
             free(magiccode); 
-            return -2;
         }
         printf("[+] MagicCodePtr size: %lu bytes\\n", sizeof(magiccodePtr));
         printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
@@ -415,7 +413,6 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
         if (!CustomCryptStringToBinaryA(base58, strlen(base58), magiccodePtr, &decodedSize)) {
             printf("Failed to decode base58 string\\n");
             free(magiccode); // Don't forget to free allocated memory on failure
-            return -2;
         }
         printf("[+] MagicCodePtr size: %lu bytes\\n", sizeof(magiccodePtr));
         printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
