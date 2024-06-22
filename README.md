@@ -180,9 +180,11 @@ Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mi
 
 - **Docker**: Make it available with Docker without installation 
 - **Loaders**: Implement more loader templates (process injection and code execution methods) with a divide and conquer option available.
+- **COFF loaders**: Implement COFF loader suppport.
 - **RISC-V VM** Implement new loader using RISC-V VM concept. 
 - **Obfuscation**: Enhancing obfuscation methods and integrating new LLVM passes. 
 - **Shellcode Generation**: Expand to include more techniques, e.g., PIC generated from arbitrary command, and offer users the choice of shellcode generation technique.
+- **PIC Chain Reactions**: ....
 - **Sleep Techniques**: Implementing additional anti-emulation and sleep techniques, like encrypting heap and stack while sleeping during pre-shellcode-execution phase. 
 - **Syscall**: Improving Syswhisper2 integration for signature reduction. (e.g. on detecting virtual machine introspection and dynamic binary instrumentation)
 - **Compilation**: Integrate additional compilier options like Cosmopolitan compiler.
