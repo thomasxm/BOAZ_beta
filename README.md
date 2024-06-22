@@ -224,6 +224,8 @@ A special thanks to the researchers and developers whose work has inspired, cont
 
 * [PE2Shellcode](https://github.com/r00tkiter/PE2Shellcode)
 * [Amber](https://github.com/thomasxm/amber)
+* [Shoggoth](https://github.com/frkngksl/Shoggoth)
+* [Mangle](https://github.com/optiv/Mangle)
 * [Stardust](https://github.com/Cracked5pider/Stardust/tree/main)
 * [Carbon Copy](https://github.com/paranoidninja/CarbonCopy)
 * [Shikata ga nai](https://github.com/EgeBalci/sgn)
