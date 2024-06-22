@@ -34,6 +34,33 @@ else
     echo "'avcleaner.bin' not found. Installing..."
 fi
 
+## Install Mangle: 
+## Run commands: 
+# Check if Mangle program exists
+if [ ! -f ./signature/Mangle ]; then
+  # Clone the Mangle repository
+  git clone https://github.com/optiv/Mangle.git
+
+  # Navigate to the Mangle directory
+  cd Mangle
+
+  # Get the required Go package
+  go get github.com/Binject/debug/pe
+
+  # Build the Mangle program
+  go build Mangle.go
+
+  # Move the built executable to the signature directory
+  mv Mangle ../signature/
+
+  # Navigate back to the original directory
+  cd ..
+
+  # Remove the Mangle directory
+  rm -rf Mangle
+fi
+
+
 # Install Syswhisper2 (adjust with actual repository if different)
 echo "Installing Syswhisper2..."
 git clone https://github.com/jthuraisamy/SysWhispers2

