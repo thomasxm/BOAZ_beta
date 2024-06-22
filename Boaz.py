@@ -88,6 +88,7 @@ def handle_star_dust(input_file):
 def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, encoding=None, star_dust=False):
     if not star_dust:
         # Generate the initial shellcode .bin file
+        # TODO: Add support for other shellcode types
         if shellcode_type == 'donut':
             cmd = ['./PIC/donut', '-b1', '-f1', '-i', input_exe, '-o', output_path + ".bin"]
         elif shellcode_type == 'pe2sh':
@@ -101,11 +102,16 @@ def generate_shellcode(input_exe, output_path, shellcode_type, encode=False, enc
             a_number = random.randint(1, 30)  
             # print(f"Encoding number: {a_number}")
             cmd = ['./PIC/amber', '-e', str(a_number), '--iat', '--scrape', '-f', input_exe, '-o', output_path + ".bin"]
+        elif shellcode_type == 'shoggoth':
+            cmd = ['wine', './PIC/shoggoth.exe', '-v', '-i', input_exe, '-o', output_path + ".bin", '--mode', 'pe']
+
         else:
             raise ValueError("Unsupported shellcode type.")
 
         # Run the initial shellcode generation command
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # run the above command but do not supress output:
+        subprocess.run(cmd, check=True)
         # print the shellcode type used:
         print(f"[+] Shellcode type used: {shellcode_type}")
     
@@ -1015,7 +1021,7 @@ def main():
     parser.add_argument('-u', '--api-unhooking', action='store_true', help='Enable API unhooking functionality')
     parser.add_argument('-g', '--god-speed', action='store_true', help='Enable advanced unhooking technique Peruns Fart (God Speed)')
 
-    parser.add_argument('-t', '--shellcode-type', default='donut', choices=['donut', 'pe2sh', 'rc4', 'amber'], help='Shellcode generation tool: donut (default), pe2sh, rc4, or amber')
+    parser.add_argument('-t', '--shellcode-type', default='donut', choices=['donut', 'pe2sh', 'rc4', 'amber', 'shoggoth'], help='Shellcode generation tool: donut (default), pe2sh, rc4, amber or shoggoth')
     parser.add_argument('-sd', '--star_dust', action='store_true', help='Enable Stardust PIC generator, input should be .bin')
 
 
@@ -1045,6 +1051,7 @@ def main():
     print_selected_options(args)
 
     # Adjust shellcode_file name based on the shellcode type
+    # TODO: Add more shellcode PIC generators here:
     if args.shellcode_type == 'donut':
         shellcode_file = 'note_donut'
     elif args.shellcode_type == 'pe2sh':
@@ -1053,6 +1060,8 @@ def main():
         shellcode_file = 'note_rc4'
     elif args.shellcode_type == 'amber':
         shellcode_file = 'note_amber'
+    elif args.shellcode_type == 'shoggoth':
+        shellcode_file = 'note_shoggoth'
     else:
         # Default case, though this should never be hit due to argparse choices constraint
         shellcode_file = 'note_donut'
