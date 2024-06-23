@@ -228,6 +228,7 @@ A special thanks to the researchers and developers whose work has inspired, cont
 * [Amber](https://github.com/thomasxm/amber)
 * [Shoggoth](https://github.com/frkngksl/Shoggoth)
 * [Mangle](https://github.com/optiv/Mangle)
+* [CallObfuscator](https://github.com/d35ha/CallObfuscator)
 * [Stardust](https://github.com/Cracked5pider/Stardust/tree/main)
 * [Carbon Copy](https://github.com/paranoidninja/CarbonCopy)
 * [Shikata ga nai](https://github.com/EgeBalci/sgn)
