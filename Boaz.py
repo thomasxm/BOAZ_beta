@@ -1041,6 +1041,10 @@ def main():
     parser.add_argument('-entropy', type=int, choices=[1, 2], default=0, help='Entropy level for post-processing the output binary. 1 for null_byte.py, 2 for pokemon.py')
     parser.add_argument('-b', '--binder', nargs='?', const='binder/calc.exe', help='Optional: Path to a utility for binding. Defaults to binder/calc.exe if not provided.')
 
+
+    ## add a new option that adds watermark to our binary, this is true by default if not specified:
+    parser.add_argument('-wm', '--watermark', type=int, nargs='?', const=1, default=1, help='Add watermark to the binary (0 for False, 1 or no value for True)')
+
     parser.add_argument('-s', '--sign-certificate', nargs='?', const='ask_user', 
                         help='Optional: Sign the payload. If a website or filepath is provided, use it. Defaults to interactive mode if no argument is provided.')
 
@@ -1167,6 +1171,11 @@ def main():
         ## rename temp file back to original:
         os.rename(temp_output_file_path, output_file_path)
 
+    ## Add watermark to the binary:
+    args.watermark = bool(args.watermark)
+    if args.watermark:
+        add_watermark(output_file_path)
+
 
     def sign_with_carbon_copy(website, output_file_path, signed_output_file_path):
         carbon_copy_command = f"python3 signature/CarbonCopy.py {website} 443 {output_file_path} {signed_output_file_path}"
@@ -1217,6 +1226,12 @@ def main():
 
     ## calculate the final output file hash in red colour:
     print(f"[+] Final output file hash: \033[91m{hashlib.md5(open(output_file_path, 'rb').read()).hexdigest()}\033[0m")
+
+
+def add_watermark(output_file_path):
+    watermark_command = f"python3 Watermarker.py {output_file_path} -s boaz,boaz"
+    subprocess.run(watermark_command, shell=True, check=True)
+
 
 
 if __name__ == '__main__':
