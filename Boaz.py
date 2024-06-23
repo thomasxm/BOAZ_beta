@@ -435,7 +435,7 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
         printf("[+] size of magiccode: %lu bytes\\n", sizeof(magiccode));
         """
         elif encoding == 'chacha':
-            encoding_declaration_index = content.find('unsigned char magiccode[]')
+            encoding_declaration_index = content.find('unsigned char magic_code[]')
             conversion_logic_template = """
     int lenMagicCode = sizeof(magic_code);
 
@@ -449,7 +449,7 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
     printf("\\n");
         """
         elif encoding == 'ascon':
-            encoding_declaration_index = content.find('unsigned char magiccode[]')
+            encoding_declaration_index = content.find('unsigned char magic_code[]')
             conversion_logic_template = """
     SIZE_T lenMagicCode = sizeof(magic_code);
     unsigned char magiccode[lenMagicCode];
@@ -621,6 +621,7 @@ def run_obfuscation(loader_path):
 
     try:
         subprocess.run(['sudo', 'bash', './obfuscate/obfuscate_file.sh', loader_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # subprocess.run(['sudo', 'bash', './obfuscate/obfuscate_file.sh', loader_path], check=True)
         # Check if the patch file exists and rename it to obf_file
         if os.path.exists(patch_file):
             os.rename(patch_file, obf_file)
@@ -881,6 +882,37 @@ def strip_binary(binary_path):
     except subprocess.CalledProcessError as e:
         print(f"[-] Failed to strip the binary {binary_path}: {e}")
 
+def add_watermark(output_file_path):
+    watermark_command = f"python3 Watermarker.py {output_file_path} -s boaz,boaz"
+    subprocess.run(watermark_command, shell=True, check=True, stdout=subprocess.DEVNULL)
+
+### Add function to run commands 'python3 obfuscate/update_config.py' and then run 'wine obfuscate/obf_api.exe ~/alice_evasion/Bob-and-Alice/alice_notepad.exe output_file obfuscate/config.ini'
+# def obfuscate_with_api(output_file_path):
+#     # Update the config.ini file with the new output file path
+#     update_config_command = "python3 obfuscate/update_config.py"
+#     subprocess.run(update_config_command, shell=True, check=True, stdout=subprocess.DEVNULL)
+
+#     # Run the obfuscation tool with the updated config.ini file
+#     obfuscate_command = f"wine obfuscate/obf_api.exe {output_file_path} {output_file_path} obfuscate/config.ini"
+#     subprocess.run(obfuscate_command, shell=True, check=True, stdout=subprocess.DEVNULL)
+def obfuscate_with_api(output_file_path):
+    update_config_command = "python3 obfuscate/update_config.py"
+    subprocess.run(update_config_command, shell=True, check=True, stdout=subprocess.DEVNULL)
+
+    # Create a temporary output file path
+    temp_output_file_path = output_file_path + ".temp"
+
+    # Run the obfuscation tool with the updated config.ini file using the temporary file
+    obfuscate_command = f"wine obfuscate/obf_api.exe {output_file_path} {temp_output_file_path} obfuscate/config.ini"
+    subprocess.run(obfuscate_command, shell=True, check=True, stdout=subprocess.DEVNULL)
+
+    shutil.move(temp_output_file_path, output_file_path)
+    print(f"\033[92m[+] Successfully obfuscated the binary API: {output_file_path} \033[0m")
+    # Ensure the temp file is deleted if it exists
+    if os.path.exists(temp_output_file_path):
+        os.remove(temp_output_file_path)
+    
+
 
 def cleanup_files(*file_paths):
     """Deletes specified files or dirs to clean up."""
@@ -1033,7 +1065,9 @@ def main():
 
     parser.add_argument('-c', '--compiler', default='mingw', choices=['mingw', 'pluto', 'akira'], help='Compiler choice: mingw (default), pluto, or akira')
     parser.add_argument('-mllvm', type=lambda s: [item.strip() for item in s.split(',')], default=None, help='LLVM passes for Pluto or Akira compiler')
-    parser.add_argument('-obf', '--obfuscate', action='store_true', help='Enable obfuscation (optional)')
+    parser.add_argument('-obf', '--obfuscate', action='store_true', help='Enable obfuscation of codebase (source code)')
+    # add obf_api option to obfuscate the API calls:
+    parser.add_argument('-obf_api', '--obfuscate-api', action='store_true', help='Enable obfuscation of API calls in ntdll and kernel32.')
 
     parser.add_argument('-w', '--syswhisper', type=int, nargs='?', const=1, default=None,
                         help='Optional: Use SysWhisper for direct syscalls. 1 for random syscall jumps (default), 2 for compiling with MingW and NASM.')
@@ -1149,7 +1183,7 @@ def main():
     else:
         compile_output(obfuscated_loader_path, output_file_path, args.compiler, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.mllvm, args.god_speed, args.encoding, args.loader, args.dream, args.etw, args.dll, args.cpl)
 
-    strip_binary(output_file_path)
+
 
     ## uncomment the below line to clean up obfuscation code base: 
     # cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
@@ -1170,6 +1204,12 @@ def main():
         subprocess.run(['wine', 'binder/binder.exe', output_file_path, binder_utility, binder_utility, '-o', temp_output_file_path], check=True)
         ## rename temp file back to original:
         os.rename(temp_output_file_path, output_file_path)
+
+    if args.obfuscate_api:
+        obfuscate_with_api(output_file_path)
+    elif not args.obfuscate_api:
+        ## strip the binary, if not obfuscating the API. Because the obfuscation tool will not be compatiable with the format. 
+        strip_binary(output_file_path)
 
     ## Add watermark to the binary:
     args.watermark = bool(args.watermark)
@@ -1228,9 +1268,7 @@ def main():
     print(f"[+] Final output file hash: \033[91m{hashlib.md5(open(output_file_path, 'rb').read()).hexdigest()}\033[0m")
 
 
-def add_watermark(output_file_path):
-    watermark_command = f"python3 Watermarker.py {output_file_path} -s boaz,boaz"
-    subprocess.run(watermark_command, shell=True, check=True)
+
 
 
 
