@@ -1012,6 +1012,8 @@ def main():
     39. Custom Stack PI (remote) with threadless execution
     40. Custom Stack PI (remote) Threadless DLL Notification Execution
     41. Custom Stack PI (remote) with Decoy code execution
+    48. Stealth new loader + Syscall breakpoints handler with memory scan evasion AKA Sifu breakpoint handler (hook on NtResumeThread)
+    49. Stealth new loader + Syscall breakpoints handler with memory scan evasion AKA Sifu breakpoint handler (hook on NtCreateThreadEx)
     """
 
     def check_non_negative(value):

