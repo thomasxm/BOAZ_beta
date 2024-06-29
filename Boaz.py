@@ -1014,7 +1014,7 @@ def main():
     41. Custom Stack PI (remote) with Decoy code execution
     48. Stealth new loader + Syscall breakpoints handler with memory guard AKA Sifu breakpoint handler (hook on NtResumeThread)
     49. Stealth new loader + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on NtCreateThreadEx, with Decoy address, PAGE_NOACCESS and XOR)
-    50. Stealth new loader + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
+    51. Stealth new loader + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
     """
 
     def check_non_negative(value):
