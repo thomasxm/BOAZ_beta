@@ -7,9 +7,6 @@
 <img width="423" alt="loglo" src="https://github.com/thomasxm/Boaz_beta/assets/44269971/a5427ccc-e2ed-4cc3-ab81-084de691b23f">
 
 
-<img width="588" alt="Screenshot 2024-03-31 at 18 23 59" src="https://github.com/thomasxm/BOAZ/assets/44269971/d1dfa5e7-b934-404a-8038-280eb3535bcb">
-
-
 
 ![Boaz_logo2 2](https://github.com/thomasxm/Boaz_beta/assets/44269971/acb405a1-63e0-454b-84af-77dfb2c4da47)
 
