@@ -61,6 +61,26 @@ if [ ! -f ./signature/Mangle ]; then
 fi
 
 
+# Install pyMetaTwin
+echo "Installing pyMetaTwin..."
+# check if signature/metatwin.py file exists, if not git clone a fork of it, otherwise cd into it
+if [ ! -f "./signature/metatwin.py" ]; then
+    git clone https://github.com/thomasxm/pyMetaTwin
+    cp -r pyMetaTwin/* signature
+    cd signature
+else
+    cd signature
+    fi
+# Install metatwin dependencies anyway.
+if [ ! -f "./metatwin.py" ]; then
+    chmod +x install.sh
+    sudo ./install.sh
+else
+    chmod +x install.sh
+    sudo ./install.sh 
+fi
+cd ..
+
 # Install Syswhisper2 (adjust with actual repository if different)
 echo "Installing Syswhisper2..."
 git clone https://github.com/jthuraisamy/SysWhispers2

