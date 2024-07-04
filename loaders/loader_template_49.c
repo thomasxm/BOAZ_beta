@@ -1904,12 +1904,26 @@ LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
 			// e->ContextRecord->Rax = (DWORD64)dllEntryPoint1; // change Rax to real start Addr, PVOID lpStartAddress
             // set for Rsp + 0x28:
 
-            // context.Rsp points to the top of the stack
-            DWORD64 *fifthArgAddr = (DWORD64 *)(e->ContextRecord->Rsp + 0x28); 
-            printf("[+] Rsp + 0x28 before change: %p\n", *fifthArgAddr);
-            *fifthArgAddr = (DWORD64)dllEntryPoint1; // Set your value
-            // print the value of 0x28 after the Rsp:
-            printf("[+] Rsp + 0x28 after change: %p\n", *fifthArgAddr);
+            // // context.Rsp points to the top of the stack
+            // DWORD64 *fifthArgAddr = (DWORD64 *)(e->ContextRecord->Rsp + 0x28); 
+            // printf("[+] Rsp + 0x28 before change: %p\n", *fifthArgAddr);
+            // *fifthArgAddr = (DWORD64)dllEntryPoint1; // Set your value
+            // // print the value of 0x28 after the Rsp:
+            // printf("[+] Rsp + 0x28 after change: %p\n", *fifthArgAddr);
+
+
+            // Calculate the stack location at offset 0x28 from Rsp
+            DWORD64 rsp = e->ContextRecord->Rsp;
+            DWORD64* stackLocation = (DWORD64*)(rsp + 0x28);
+            // Print the address and the value at Rsp + 0x28 before the change
+            // printf("Address of Rsp: %p\n", (void*)rsp);
+            // printf("Address of Rsp + 0x28: %p\n", (void*)(rsp + 0x28));
+            printf("Value at Rsp + 0x28 before: 0x%llx\n", *stackLocation);
+            // Assign the value
+            *stackLocation = (DWORD64)dllEntryPoint1;
+            // // Print the address and the value at Rsp + 0x28 after the change
+            // printf("Address of Rsp + 0x28: %p\n", (void*)(rsp + 0x28));
+            printf("Value at Rsp + 0x28 after: 0x%llx\n", *stackLocation);
 
             // print the value of dllEntryPoint1 to check if it is correct:
             printf("[+] dllEntryPoint1: %p\n", dllEntryPoint1);
@@ -1989,12 +2003,24 @@ LONG WINAPI BreakpointHandler(PEXCEPTION_POINTERS e)
             printf("[+] Rax: %p\n", e->ContextRecord->Rax); 
             printf("The registers are cleared, there is no need to set them back to original values. \n");
 
-            // context.Rsp points to the top of the stack TOGO: 
-            DWORD64 *fifthArgAddr = (DWORD64 *)(e->ContextRecord->Rsp + 0x28); 
-            printf("[+] Rsp + 0x28 before change: %p\n", *fifthArgAddr);
-            *fifthArgAddr = (DWORD64)globalPointer; // Set your value
-            // print the value of 0x28 after the Rsp:
-            printf("[+] Rsp + 0x28 after change: %p\n", *fifthArgAddr);
+            // Calculate the stack location at offset 0x28 from Rsp
+            DWORD64 rsp = e->ContextRecord->Rsp;
+            DWORD64* stackLocation = (DWORD64*)(rsp + 0x28);
+
+            // Print the address and the value at Rsp + 0x28 before the change
+            // printf("Address of Rsp: %p\n", (void*)rsp);
+            printf("Address of Rsp + 0x28: %p\n", (void*)(rsp + 0x28));
+            printf("Value at Rsp + 0x28 before: 0x%llx\n", *stackLocation);
+
+            // Assign the value
+            *stackLocation = (DWORD64)globalPointer;
+
+            // Print the address and the value at Rsp + 0x28 after the change
+            printf("Address of Rsp + 0x28: %p\n", (void*)(rsp + 0x28));
+            printf("Value at Rsp + 0x28 after: 0x%llx\n", *stackLocation);
+            // Additional print to verify globalPointer
+            // printf("Value of globalPointer: 0x%llx\n", (DWORD64)globalPointer);
+
 
 			// e->ContextRecord->Rcx = (DWORD64)g_thread_handle; // 1st arg
 			// e->ContextRecord->Rax = (DWORD64)dllEntryPoint1; // change Rax to real start Addr, PVOID lpStartAddress
