@@ -61,7 +61,7 @@ NTSYSAPI VOID NTAPI RtlRbInsertNodeEx( PRTL_RB_TREE Tree, PRTL_BALANCED_NODE Par
 
 HMODULE IsModulePresent(LPCWSTR lpwName);
 // HMODULE IsModulePresentA(char* Name);
-BOOL LinkModuleToPEB(
+BOOL AddModuleToPEB(
 	PBYTE pbDllData, // base address of the module
 	LPWSTR LocalDLLName, // full path to the module
 	LPWSTR CrackedDLLName, // cracked name of the module

@@ -17,7 +17,7 @@ SIZE_T WideStringLength(PCWSTR str)
 	return len;
 }
 
-// BOOL WideStringCompare(LPWSTR lpwStr1, LPWSTR lpwStr2, SIZE_T cbMaxCount)
+
 BOOL WideStringCompare(PCWSTR lpwStr1, PCWSTR lpwStr2, SIZE_T cbMaxCount)
 {
 	BOOL match = TRUE;
@@ -72,7 +72,7 @@ PLDR_DATA_TABLE_ENTRY2 FindLdrTableEntry(
 
 	if (pPeb == NULL)
 	{
-		return NULL;
+		return 0;
 	}
 
 	pListHead = &pPeb->Ldr->InLoadOrderModuleList;
@@ -83,7 +83,6 @@ PLDR_DATA_TABLE_ENTRY2 FindLdrTableEntry(
 		pCurEntry = CONTAINING_RECORD(pListEntry, LDR_DATA_TABLE_ENTRY2, InLoadOrderLinks);
 		pListEntry = pListEntry->Flink;
 
-		//BOOL BaseName1 = WideStringCompare(BaseName, pCurEntry->BaseDllName.Buffer, (pCurEntry->BaseDllName.Length / sizeof(wchar_t)) - 4);
 		BOOL BaseName2 = WideStringCompare(BaseName, pCurEntry->BaseDllName.Buffer, WideStringLength(BaseName));
 
 		if (BaseName2 == TRUE)
@@ -93,7 +92,7 @@ PLDR_DATA_TABLE_ENTRY2 FindLdrTableEntry(
 
 	} while (pListEntry != pListHead);
 
-	return NULL;
+	return 0;
 
 }
 
@@ -103,11 +102,7 @@ PRTL_RB_TREE FindModuleBaseAddressIndex()
 	PRTL_BALANCED_NODE pNode = NULL;
 	PRTL_RB_TREE pModBaseAddrIndex = NULL;
 
-	/*
-		TODO: 
-		Implement these manually cause these could totally be hooked 
-		and various other reasons
-	*/
+	/// Problem with memory page that can be detected by memory scanners, use alternative methods to do the following? 
 	RTLCOMPAREMEMORY pRtlCompareMemory = (RTLCOMPAREMEMORY)GetFunctionAddress(IsModulePresent(L"ntdll.dll"), (char*)"RtlCompareMemory");
 	STRCMP pstrcmp = (STRCMP)GetFunctionAddress(IsModulePresent(L"ntdll.dll"), (char*)"strcmp");
 
@@ -164,7 +159,7 @@ PRTL_RB_TREE FindModuleBaseAddressIndex()
 
 		if (stEnd == 0)
 		{
-			return NULL;
+			return 0;
 		}
 
 		PRTL_RB_TREE pTree = (PRTL_RB_TREE)stEnd;
@@ -359,10 +354,7 @@ HMODULE IsModulePresentA(
 	// MultiByteToWideChar returns size in characters, not bytes
 	wideNameSize = pMultiByteToWideChar(CP_UTF8, 0, Name, -1, NULL, 0) * 2;
 
-	/*
-		Attempt to allocate this on the stack, seeing as it's faster and we can attempt
-		to avoid funny shit like heap fragmentation on a simple temp var
-	*/
+
 	wideName = (WCHAR*)_malloca(wideNameSize);
 
 	pMultiByteToWideChar(CP_UTF8, 0, Name, -1, wideName, wideNameSize);
@@ -447,7 +439,7 @@ PVOID GetFunctionAddress(
 		&FunctionAddress
 	);
 	if (!ok)
-		return NULL;
+		return 0;
 	return FunctionAddress;
 }
 
@@ -460,13 +452,13 @@ BOOL LocalLdrGetProcedureAddress(
 {
 	if (ProcName == NULL && Ordinal == 0)
 	{
-		printf("LocalLdrGetProcedureAddress: provide either a Function name or Ordinal\n");
+		printf("[-] LocalLdrGetProcedureAddress: provide either a Function name or Ordinal\n");
 		return FALSE;
 	}
 
 	if (ProcName != NULL && Ordinal != 0)
 	{
-		printf("LocalLdrGetProcedureAddress: provide Function name or Ordinal, not both\n");
+		printf("[-] LocalLdrGetProcedureAddress: provide Function name or Ordinal, not both\n");
 		return FALSE;
 	}
 
@@ -556,7 +548,7 @@ size_t my_strlen(const char* s)
 	return size;
 }
 
-void my_strncpy(char* dst, char* src, size_t size)
+void my_strncpy(char* dst, const char* src, size_t size)
 {
 	for (size_t i = 0; i < size; i++)
 	{
@@ -565,6 +557,8 @@ void my_strncpy(char* dst, char* src, size_t size)
 			break;
 	}
 }
+
+
 
 BOOL _LocalLdrGetProcedureAddress(
 	HMODULE hLibrary,
@@ -737,7 +731,7 @@ BOOL _LocalLdrGetProcedureAddress(
 						);
 						if (!ok)
 						{
-							printf("LocalLdrGetProcedureAddress: failed to resolve address of: %s!%s\n", libname, funcname);
+							printf("[-] LocalLdrGetProcedureAddress: failed to resolve address of: %s!%s\n", libname, funcname);
 							return FALSE;
 						}
 					}
@@ -750,7 +744,7 @@ BOOL _LocalLdrGetProcedureAddress(
 	return FALSE;
 }
 
-BOOL LinkModuleToPEB(
+BOOL AddModuleToPEB(
 	PBYTE pbDllData, // base address of the module
 	LPWSTR LocalDLLName, // full path to the module
 	LPWSTR CrackedDLLName, // cracked name of the module
@@ -799,7 +793,7 @@ BOOL LinkModuleToPEB(
 	// start setting the values in the entry
 	pNtQuerySystemTime(&pLdrEntry->LoadTime);
 
-	// do the obvious ones
+
 	pLdrEntry->ReferenceCount        = 1;
 	pLdrEntry->LoadReason            = LoadReasonDynamicLoad;
 	pLdrEntry->OriginalBase          = pNtHeaders->OptionalHeader.ImageBase;

