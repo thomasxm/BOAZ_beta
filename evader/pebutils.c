@@ -824,8 +824,8 @@ BOOL AddModuleToPEB(
 	pLdrEntry->BaseDllName           = BaseDllName;
 	pLdrEntry->FullDllName           = FullDllName;
 	pLdrEntry->ObsoleteLoadCount     = 1;
-	pLdrEntry->Flags                 = LDRP_IMAGE_DLL | LDRP_ENTRY_INSERTED | LDRP_ENTRY_PROCESSED | LDRP_PROCESS_ATTACH_CALLED;
-
+	// pLdrEntry->Flags                 = LDRP_IMAGE_DLL | LDRP_ENTRY_INSERTED | LDRP_ENTRY_PROCESSED | LDRP_PROCESS_ATTACH_CALLED;
+	pLdrEntry->Flags                 = LDRP_IMAGE_DLL | LDRP_ENTRY_INSERTED | LDRP_ENTRY_PROCESSED; //If we set LDRP_PROCESS_ATTACH_CALLED, dll entry point will be triggered by ResumeThread
 	// set the correct values in the Ddag node struct
 	pLdrEntry->DdagNode = (PLDR_DDAG_NODE)pHeapAlloc(
 		pGetProcessHeap(),
