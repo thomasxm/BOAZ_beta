@@ -23,18 +23,21 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
 ## Features
 
 - **Modular Design**: Easily extendable with new tactics and techniques by adding scripts.
+
 - **Signature Evasion - Obfuscation**: Pluto and Akira LLVM-based obfuscation including string encryption and control flow flattening.
     - **CodeBase obfuscation**:
-        - **Function name and string obfuscated from chars: [0-9a-zA-Z_] by 3 randomly selected algorithms: Mt19937, MinstdRand and ranlux48_base.**:
-        - **Shikata Ga Nai (SGN) encoding**:
+        - Function name and string obfuscated from chars: [0-9a-zA-Z_] by 3 randomly selected algorithms: Mt19937, MinstdRand and ranlux48_base.
+        - Shikata Ga Nai (SGN) encoding.
     - **Payload encoding (T1132)**:
-        - ***UUID (Universally Unique Identifier)***
-        - ***MAC***
-        - ***IP4 format***
-        - ***base-64***
-        - ***base-58***
-        - ***AES***
-        - ***AES with divide and conquer to bypass logical path hijacking***
+        - UUID (Universally Unique Identifier)
+        - MAC
+        - IP4 format
+        - base-64
+        - base-45
+        - base-58
+        - Chacha20
+        - AES
+        - AES with divide and conquer to bypass logical path hijacking
     - **Compilation time obfuscation (LLVM, T1140, T1027)**:    
         - **Pluto**:
             - `bcf`: Bogus Control Flow
@@ -53,7 +56,8 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
     - **Stripped binary (T1027.008)**
     - **Two methods to reduce entropy to below threshold by padding Pokémon names or null bytes**
     - **Signed certificate (T1036.001)**
-      
+    - **etadata copied from window binary (T1036)**
+
 - **Heuristic Evasion**: Divide and conquer strategy with junk API instructions, API unhooking technique and modularized execution to disrupt heuristic analysis.
     - **Anti-Emulation (T1497)**: checks based on file system operation, process and network information and “offer you have to refuse” [15, 38]. A simple heuristic that if 2 or more checks are failed, execution will stop. 
     - **Junk API instructions (“no-op” calls, or mimicry attack)**: 5 benign API functions to vary the API call sequences 
@@ -68,11 +72,14 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
         - PE2SH (from the author of process-hacker)
         - RC4 encrypted convertor
         - Amber (by Ege Balcı)
+        - Shoggoth (by frkngksl)
 - **Behavioral Evasion**: Utilizes various process injection techniques to evade behavioral detection. 
     - **Various code execution and process injection loaders (T1055, T1106, T1027.007)**: A variety of loaders for different evasion scenarios
     - **Two LLVM-obfuscation compilers (T1027)**
     - **Output DLL/CPL (side-loading) (T1574.002, T1218.011/002)**
-    - **ETW-patching (patch ETW stub with “xor rax, rax; ret”) (T1562.006)**   
+    - **ETW-patching (patch ETW stub with “xor rax, rax; ret”) (T1562.006)**
+    - **API name spoofing via IAT, using CallObfuscator by d35ha**
+
     
 
 ## Prerequisites
