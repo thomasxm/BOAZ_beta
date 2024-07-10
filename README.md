@@ -8,7 +8,8 @@
 
 
 
-![Boaz_logo2 2](https://github.com/thomasxm/Boaz_beta/assets/44269971/acb405a1-63e0-454b-84af-77dfb2c4da47)
+<img width="352" alt="small_logo" src="https://github.com/thomasxm/Boaz_beta/assets/44269971/99abcf82-7084-47e5-a993-2a712b4ca664">
+
 
 
 ## Description
