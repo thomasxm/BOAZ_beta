@@ -1023,7 +1023,8 @@ def main():
     53.
     54. Stealth new loader + Exception handler + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
     56. This is a fork of Loader 37 with additional features. If -ldr flag is not provided, loader will add module (contains the shellcode) to the PEB module lists manually using code from Dark library. 
-    """
+    57. A fork of loader 51 with XOR replaced with RC4 encryption offered by SystemFunction032/033.
+     """
 
     def check_non_negative(value):
         ivalue = int(value)

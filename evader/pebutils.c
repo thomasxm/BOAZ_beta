@@ -1,6 +1,6 @@
 /**This file add loaded module into PEB structure. It is used in Dark LL function.
 Author: at batsec
-Tributes to batsec for their greate work on the Dark LL function.
+Credits to batsec for their greate work on the Dark LL function.
 Edited by Thomas M
 **/
 #include "pebutils.h"
