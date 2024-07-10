@@ -24,7 +24,8 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
 
 - **Modular Design**: Easily extendable with new tactics and techniques by adding scripts.
 
-- **Signature Evasion - Obfuscation**: Pluto and Akira LLVM-based obfuscation including string encryption and control flow flattening.
+- **Signature Evasion**:
+    - **LLVM IR level Obfuscation**: Pluto and Akira LLVM-based obfuscation including string encryption and control flow flattening.
     - **CodeBase obfuscation**:
         - Function name and string obfuscated from chars: [0-9a-zA-Z_] by 3 randomly selected algorithms: Mt19937, MinstdRand and ranlux48_base.
         - Shikata Ga Nai (SGN) encoding.
@@ -58,7 +59,7 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
     - **Signed certificate (T1036.001)**
     - **etadata copied from window binary (T1036)**
 
-- **Heuristic Evasion**: Divide and conquer strategy with junk API instructions, API unhooking technique and modularized execution to disrupt heuristic analysis.
+- **Heuristic Evasion**: 
     - **Anti-Emulation (T1497)**: checks based on file system operation, process and network information and “offer you have to refuse” [15, 38]. A simple heuristic that if 2 or more checks are failed, execution will stop. 
     - **Junk API instructions (“no-op” calls, or mimicry attack)**: 5 benign API functions to vary the API call sequences 
     - **API Unhooking**:
@@ -73,7 +74,8 @@ This tool has an alternative use: it can function as a packer or obfuscator to p
         - RC4 encrypted convertor
         - Amber (by Ege Balcı)
         - Shoggoth (by frkngksl)
-- **Behavioral Evasion**: Utilizes various process injection techniques to evade behavioral detection. 
+          
+- **Behavioral Evasion**: 
     - **Various code execution and process injection loaders (T1055, T1106, T1027.007)**: A variety of loaders for different evasion scenarios
     - **Two LLVM-obfuscation compilers (T1027)**
     - **Output DLL/CPL (side-loading) (T1574.002, T1218.011/002)**
