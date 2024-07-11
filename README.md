@@ -65,7 +65,7 @@ This tool has an alternative use: it can function as a packer or obfuscator.
     - **Stripped binary (T1027.008)**
     - **Two methods to reduce entropy to below threshold by padding Pokémon names or null bytes**
     - **Signed certificate (T1036.001)**
-    - **etadata copied from window binary (T1036)**
+    - **Metadata copied from window binary (T1036)**
 
 - **Heuristic Evasion**: 
     - **Anti-Emulation (T1497)**: checks based on file system operation, process and network information and “offer you have to refuse” [15, 38]. A simple heuristic that if 2 or more checks are failed, execution will stop. 
