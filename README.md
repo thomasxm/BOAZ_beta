@@ -248,6 +248,7 @@ All credit goes to the original authors of the techniques and tools:
 * [Carbon Copy](https://github.com/paranoidninja/CarbonCopy)
 * [Shikata ga nai](https://github.com/EgeBalci/sgn)
 * [x86matthew](https://www.x86matthew.com/)
+* [DarkLoadLibrary](https://github.com/bats3c/DarkLoadLibrary)
 * [Red Team Notes](https://www.ired.team/)
 
 And many more blogs and articles. Please feel free to add more...
