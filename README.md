@@ -205,7 +205,8 @@ options:
 
 ## Evasion Modules
 
-![Evasion101 (1)](https://github.com/thomasxm/BOAZ/assets/44269971/8c4d697b-73f6-44c4-825e-65ee27f09e68)
+![Evasion101 (1)](https://github.com/thomasxm/Boaz_beta/assets/44269971/e5fd38a1-fd95-47f9-a7b0-e85710596902)
+
 
 
 ## Process Injection Loaders
