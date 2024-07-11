@@ -192,7 +192,8 @@ Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mi
 
 ## Roadmap
 
-- **Docker**: Make it available with Docker without installation 
+- **Docker**: Make it available with Docker without installation
+- **Add a GUI for users**: Web UI or Python UI.
 - **Loaders**: Implement more loader templates (process injection and code execution methods) with a divide and conquer option available.
 - **COFF loaders**: Implement COFF loader suppport.
 - **RISC-V VM** Implement new loader using RISC-V VM concept. 
