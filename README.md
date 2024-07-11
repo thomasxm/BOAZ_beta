@@ -118,10 +118,19 @@ Example usage:
 python3 Boaz.py -f ~/testing_payloads/notepad_64.exe -o ./alice_notepad.exe -t donut -obf -l 1 -c pluto -e uuid -g
 ```
 
+Use a built ELF executable in Linux environment:
+```console
+./Boaz -f ~/testing_payloads/notepad_64.exe -o ./alice_notepad.exe -t donut -obf -l 1 -c pluto -e uuid -g
+```
+
 Refer to the help command for more details on usage:
 
 ```console
 python3 Boaz.py -h 
+```
+
+```console
+./Boaz -h 
 ```
 
 ```bash
