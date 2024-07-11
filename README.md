@@ -78,7 +78,7 @@ This tool has an alternative use: it can function as a packer or obfuscator.
     - **Stack encryption sleep**: Local variables and shellcode were being stored on stack. This part of memory is available for scanning both in emulator pre-execution and post-execution. 
     - **PIC convertor (T1027.009, T1027.002, T1620)**:
         - The donut (The Wover)
-        - PE2SH (from the author of process-hacker)
+        - PE2SH (hasherezade)
         - RC4 encrypted convertor
         - Amber (by Ege Balcı)
         - Shoggoth (by frkngksl)
