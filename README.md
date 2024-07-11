@@ -233,10 +233,9 @@ Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mi
 - **PIC Chain Reactions**: ....
 - **Sleep Techniques**: Implementing additional anti-emulation and sleep techniques, like encrypting heap and stack while sleeping during pre-shellcode-execution phase. 
 - **Syscall**: Improving Syswhisper2 integration for signature reduction. (e.g. on detecting virtual machine introspection and dynamic binary instrumentation)
-- **Compilation**: Integrate additional compilier options like Cosmopolitan compiler.
+- **Compilation**: Integrate additional compiler options like Cosmopolitan compiler.
 - **File format**: Extend more file format supports, so that user can execute sample with signed utilities and more options.
-- **binder**: add binder options....
-- **modularised modules**: Although Boaz has all its implementations modularised in concept, it is not 'actually' modularised in its current beta version. Owing to the fact that this tool is a side project for my dissertation, I need to find time to separate each function into an actual module and ensure that each is presented with a template so that users can add a new technique and integrate it into the main programme without the need to change the main programme or other modules.
+- **modularised modules**: Although Boaz has all its implementations modularised in concept, it is not 'actually' modularised in its current beta version. Owing to the fact that this tool is a side project for my dissertation, I need to find time to separate each function into an actual module and ensure that each is presented with a template so that users can add a new technique and integrate it into the main program without the need to change the main program or other modules.
 - **Templates**: using YAML and JSON files to configure and modularise the program. 
 
 ## Contributing
