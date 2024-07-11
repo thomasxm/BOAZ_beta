@@ -1,3 +1,7 @@
+#ifndef PEBSTRUCTS_H
+#define PEBSTRUCTS_H
+
+#include <windows.h>
 #include <winternl.h>
 
 #define GDI_HANDLE_BUFFER_SIZE32 34
@@ -372,4 +376,6 @@ typedef struct _PEB2
 typedef struct _RTL_RB_TREE {
 	PRTL_BALANCED_NODE Root;
 	PRTL_BALANCED_NODE Min;
-} RTL_RB_TREE, * PRTL_RB_TREE;
+} RTL_RB_TREE, * PRTL_RB_TREE; 
+
+#endif

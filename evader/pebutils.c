@@ -4,6 +4,9 @@ Credits to batsec for their greate work on the Dark LL function.
 Edited by Thomas M
 **/
 #include "pebutils.h"
+#include "pebstructs.h"
+#include <stddef.h>
+
 
 // SIZE_T WideStringLength(LPWSTR str)
 SIZE_T WideStringLength(PCWSTR str) 
