@@ -19,7 +19,7 @@ BOAZ (Bypass, Obfuscate, Adapt, Zero-Trust) evasion was inspired by the concept 
 
 BOAZ aims to bypass the before and during execution phases that span signature, heuristic and behavioural-based detection methods. BOAZ supports x64 binary (PE) or raw playload (.bin) as input. It has been tested on separated Window-11 VMs with 14 Desktop AVs. The design of BOAZ evasion is modularised so users can add their own toolset, encoding or new techniques to the framework at will. It is written in both C and C++, and uses Python as the main program to link all modules together.
 
-For students and researchers in offensive security, no advanced programming knowledge or skills are required to use BOAZ to generate undetectable polymorphic samples.
+For students and researchers in offensive security, no advanced programming or scripting knowledge or skills are required to use BOAZ to generate undetectable polymorphic samples.
 
 This tool has an alternative use: it can function as a packer or obfuscator.
 
