@@ -13,6 +13,8 @@
 ![c](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white) ![python](https://img.shields.io/badge/Python-00599C?style=for-the-badge&logo=python&logoColor=red) ![assembly](https://img.shields.io/badge/ASSEMBLY-ED8B00?style=for-the-badge&logo=Assembly&logoColor=white) ![windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
 
+[Features](#Features) | [Installation](#installation) | [Usage](#Usage)
+
 ## Description
 
 BOAZ (Bypass, Obfuscate, Adapt, Zero-Trust) evasion was inspired by the concept of multi-layered approach which is the evasive version of defence-in-depth ([Swinnen & Mesbahi, 2014](https://www.blackhat.com/docs/us-14/materials/us-14-Mesbahi-One-Packer-To-Rule-Them-All.pdf)). It was developed to aid the security testing and antivirus defence evaluation. 
@@ -22,6 +24,9 @@ BOAZ aims to bypass the before and during execution phases that span signature, 
 For students and researchers in offensive security, no advanced programming or scripting knowledge or skills are required to use BOAZ to generate undetectable polymorphic samples.
 
 This tool has an alternative use: it can function as a packer or obfuscator.
+
+
+
 
 ## Features
 
@@ -92,7 +97,7 @@ This tool has an alternative use: it can function as a packer or obfuscator.
 - Linux environment with Wine configured. Kali Linux or other Debian prefered. 
 - CMake, Git, GCC, G++, MingW, LLVM and other build essentials installed.
 
-## Installation and Compilation
+## Installation
 
 1. **Install required packages:**:
 
