@@ -246,7 +246,7 @@ We welcome contributions to improve the Boaz Evasion Tool. Please review `CONTRI
 We welcome submissions to [pull requests](https://github.com/thomasxm/Boaz_beta/pulls) and [issues](https://github.com/thomasxm/Boaz_beta/issues).
 
 
-This is in development, please feel free to reach out to me @ThomasMeeeee on X for any suggestions! 
+This is in development, please feel free to reach out to me @thomasmeeeee on X for any suggestions! 
 
 ## License
 
