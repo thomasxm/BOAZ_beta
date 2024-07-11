@@ -111,3 +111,42 @@ echo "start unit test:"
 cd ../../../ && ./llvm_obfuscator_pluto/bin/clang++ -D nullptr=NULL -O2 -flto -fuse-ld=lld -mllvm -passes=mba,sub,idc,bcf,fla,gle -Xlinker -mllvm -Xlinker -passes=hlw,idc -target x86_64-w64-mingw32 loader2_test.c ./classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o ./notepad_llvm.exe -v -L/usr/lib/gcc/x86_64-w64-mingw32/12-win32 -L./clang_test_include -I./c++/ -I./c++/mingw32/ ./normal_api.c ./sweet_sleep.c ./anti_emu.c -lws2_32 -lpsapi
 wine ./notepad_llvm.exe
 echo "Installation and setup completed!"
+
+## Main linker:
+## Check if pyinstaller is installed, if not install it:
+if [ ! -f "/usr/local/bin/pyinstaller" ]; then
+    echo "Installing pyinstaller..."
+    pip3 install pyinstaller
+else
+    echo "Pyinstaller is already installed."
+fi
+
+#!/bin/bash
+
+# Check if PyInstaller is installed
+if ! command -v pyinstaller &> /dev/null
+then
+    echo "PyInstaller is not installed. Installing PyInstaller..."
+    # Install PyInstaller
+    pip install pyinstaller
+    if [ $? -ne 0 ]; then
+        echo "Failed to install PyInstaller. Exiting."
+        exit 1
+    fi
+else
+    echo "PyInstaller is already installed."
+fi
+
+# Run PyInstaller to create a single executable
+echo "Running PyInstaller..."
+pyinstaller --onefile Boaz.py
+
+if [ $? -eq 0 ]; then
+    echo "Executable created successfully."
+else
+    echo "Failed to create the executable."
+    exit 1
+fi
+
+echo "Setup completed successfully."
+echo "Main program can be run with python3 Boaz.py or ./Boaz"
