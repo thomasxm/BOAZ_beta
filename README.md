@@ -134,9 +134,11 @@ python3 Boaz.py -h
 ```
 
 ```bash
-usage: Boaz.py [-h] -f INPUT_FILE [-o OUTPUT_FILE] [-divide] [-l LOADER] [-dll] [-cpl] [-sleep] [-a] [-etw] [-j] [-dream [DREAM]] [-u] [-g]
-               [-t {donut,pe2sh,rc4,amber}] [-sd] [-sgn] [-e {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}] [-c {mingw,pluto,akira}]
-               [-mllvm MLLVM] [-obf] [-w [SYSWHISPER]] [-entropy {1,2}] [-b [BINDER]] [-s [SIGN_CERTIFICATE]]
+usage: Boaz [-h] -f INPUT_FILE [-o OUTPUT_FILE] [-divide] [-l LOADER] [-dll] [-cpl] [-sleep]
+            [-a] [-etw] [-j] [-dream [DREAM]] [-u] [-g] [-t {donut,pe2sh,rc4,amber,shoggoth}]
+            [-sd] [-sgn] [-e {uuid,xor,mac,ipv4,base45,base64,base58,aes,chacha,aes2,ascon}]
+            [-c {mingw,pluto,akira}] [-mllvm MLLVM] [-obf] [-obf_api] [-w [SYSWHISPER]]
+            [-entropy {1,2}] [-b [BINDER]] [-wm [WATERMARK]] [-s [SIGN_CERTIFICATE]]
 
 Process loader and shellcode.
 
@@ -145,39 +147,53 @@ options:
   -f INPUT_FILE, --input-file INPUT_FILE
                         Path to binary.exe
   -o OUTPUT_FILE, --output-file OUTPUT_FILE
-                        Optional: Specify the output file path and name. If not provided, a random file name will be used in the ./output
-                        directory.
+                        Optional: Specify the output file path and name. If not provided, a
+                        random file name will be used in the ./output directory.
   -divide               Divide flag (True or False)
   -l LOADER, --loader LOADER
                         Loader number (must be a non-negative integer)
-  -dll                  Compile the output as a DLL instead of an executable, can be run with rundll32.exe
-  -cpl                  Compile the output as a CPL instead of an executable, can be run with control.exe
+  -dll                  Compile the output as a DLL instead of an executable, can be run with
+                        rundll32.exe
+  -cpl                  Compile the output as a CPL instead of an executable, can be run with
+                        control.exe
   -sleep                Obfuscation Sleep flag with random sleep time (True or False)
   -a, --anti-emulation  Anti-emulation flag (True or False)
   -etw                  Enable ETW patching functionality
-  -j, --junk-api        Insert junk API function call at a random location in the main function (5 API functions)
-  -dream [DREAM]        Optional: Sleep with encrypted stacks for specified time in milliseconds. Defaults to 1500ms if not provided.
+  -j, --junk-api        Insert junk API function call at a random location in the main function
+                        (5 API functions)
+  -dream [DREAM]        Optional: Sleep with encrypted stacks for specified time in
+                        milliseconds. Defaults to 1500ms if not provided.
   -u, --api-unhooking   Enable API unhooking functionality
   -g, --god-speed       Enable advanced unhooking technique Peruns Fart (God Speed)
-  -t {donut,pe2sh,rc4,amber}, --shellcode-type {donut,pe2sh,rc4,amber}
-                        Shellcode generation tool: donut (default), pe2sh, rc4, or amber
+  -t {donut,pe2sh,rc4,amber,shoggoth}, --shellcode-type {donut,pe2sh,rc4,amber,shoggoth}
+                        Shellcode generation tool: donut (default), pe2sh, rc4, amber or
+                        shoggoth
   -sd, --star_dust      Enable Stardust PIC generator, input should be .bin
   -sgn, --encode-sgn    Encode the generated shellcode using sgn tool.
-  -e {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}, --encoding {uuid,xor,mac,ipv4,base64,base58,aes,chacha,aes2}
-                        Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is a devide and conquer AES decryption to bypass
-                        logical path hijacking. Other encoders are under development.
+  -e {uuid,xor,mac,ipv4,base45,base64,base58,aes,chacha,aes2,ascon}, --encoding {uuid,xor,mac,ipv4,base45,base64,base58,aes,chacha,aes2,ascon}
+                        Encoding type: uuid, xor, mac, ip4, base64, base58 AES and aes2. aes2 is
+                        a devide and conquer AES decryption to bypass logical path hijacking.
+                        Other encoders are under development.
   -c {mingw,pluto,akira}, --compiler {mingw,pluto,akira}
                         Compiler choice: mingw (default), pluto, or akira
   -mllvm MLLVM          LLVM passes for Pluto or Akira compiler
-  -obf, --obfuscate     Enable obfuscation (optional)
+  -obf, --obfuscate     Enable obfuscation of codebase (source code)
+  -obf_api, --obfuscate-api
+                        Enable obfuscation of API calls in ntdll and kernel32.
   -w [SYSWHISPER], --syswhisper [SYSWHISPER]
-                        Optional: Use SysWhisper for direct syscalls. 1 for random syscall jumps (default), 2 for compiling with MingW and NASM.
-  -entropy {1,2}        Entropy level for post-processing the output binary. 1 for null_byte.py, 2 for pokemon.py
+                        Optional: Use SysWhisper for direct syscalls. 1 for random syscall jumps
+                        (default), 2 for compiling with MingW and NASM.
+  -entropy {1,2}        Entropy level for post-processing the output binary. 1 for null_byte.py,
+                        2 for pokemon.py
   -b [BINDER], --binder [BINDER]
-                        Optional: Path to a utility for binding. Defaults to binder/calc.exe if not provided.
+                        Optional: Path to a utility for binding. Defaults to binder/calc.exe if
+                        not provided.
+  -wm [WATERMARK], --watermark [WATERMARK]
+                        Add watermark to the binary (0 for False, 1 or no value for True)
   -s [SIGN_CERTIFICATE], --sign-certificate [SIGN_CERTIFICATE]
-                        Optional: Sign the payload using a cloned certificate from the specified website. Defaults to www.microsoft.com if no
-                        website is provided.
+                        Optional: Sign the output binary and copy metadata from another binary
+                        to your output. If a website or filepath is provided, use it. Defaults
+                        to interactive mode if no argument is provided.
 
 ```
 
