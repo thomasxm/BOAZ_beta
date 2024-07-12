@@ -74,6 +74,8 @@ This tool has an alternative use: it can function as a packer or obfuscator.
         - 1. Read the syscall stub from the original ntdll and rewrite the loaded ntdll’s stub
         - 2. Custom Peruns’ Fart unhooking
         - 3. Halo’s gate (TartarusGate)
+    - **Sifu Memory Guard**
+        - New memory guard inspired by hardware breakpoints hooking techniques (Loader 48, 48, 51, 52, 57)
     - **Sleep obfuscation: Custom Ekko (CreateTimerQueueTimer) with arbitrary sleep time invoked at run time**
     - **Stack encryption sleep**: Local variables and shellcode were being stored on stack. This part of memory is available for scanning both in emulator pre-execution and post-execution. 
     - **PIC convertor (T1027.009, T1027.002, T1620)**:
