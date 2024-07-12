@@ -244,6 +244,7 @@ Marcus proposed using hardware breakpoints to set up the function arguments at t
 
 
 ### New Memory Guard Family: 
+<img width="400" alt="Sifu" src="https://github.com/user-attachments/assets/935ee41b-02cd-46dc-8d29-2fd67d365b7f">
 
 The aim is to make the shellcode "non-exist" to the AV as long as possible except when it is executed in a thread.
 
