@@ -1,9 +1,27 @@
 #!/bin/bash
+# set up script for BOAZ evasion tool
 
 # Update and upgrade packages
-echo "[*] Installing required packages for BOAZ evasion tool..."
-echo "[*] Updating and upgrading packages..."
-sudo apt update && sudo apt upgrade -y
+# Define color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Print messages with colors
+echo -e "${GREEN}[*] Installing required packages for BOAZ evasion tool...${NC}"
+echo -e "${YELLOW}[*] Updating and upgrading packages...${NC}"
+read -p "Do you want to update and upgrade your packages? [y/n]" yn
+case $yn in
+    [Yy]* )
+        sudo apt update && sudo apt upgrade -y
+        echo -e "${GREEN}[*] Packages updated and upgraded.${NC}"
+        ;;
+    [Nn]* ) echo -e "${YELLOW}[*] Skipping update and upgrade.${NC}";;
+    * ) echo "Please answer yes or no.";;
+esac
+
+ 
 sudo apt install 
 sudo apt install osslsigncode -y
 pip3 install pyopenssl
@@ -21,27 +39,29 @@ sudo apt install -y wine
 sudo apt install -y mingw-w64
 sudo apt install -y mingw-w64-tools
 sudo apt install -y x86_64-w64-mingw32-g++
+sudo dpkg --add-architecture i386
+apt-get install wine32:i386
 
 if [ -f "./donut" ]; then
-    echo "'donut' is already installed in the current directory."
+    echo "'donut' is already installed in the current directory.\n"
 else
-    echo "'donut' not found. Installing..."
+    echo "'donut' not found. Installing...\n"
 fi
 
 echo "Installing pe2sh..."
 
 if [ -f "./PIC/pe2shc.exe" ]; then
-    echo "'pe2shc.exe' is already installed in the current directory."
+    echo "'pe2shc.exe' is already installed in the current directory.\n"
 else
-    echo "'pe2shc.exe' not found. Installing..."
+    echo "'pe2shc.exe' not found. Installing...\n"
 fi
 
 
-echo "Installing custom obfuscator based on avcleaner..."
+echo "Installing custom obfuscator based on avcleaner...\n"
 if [ -f "./avcleaner_bin/avcleaner.bin" ]; then
-    echo "'avcleaner.bin' is already installed in the current directory."
+    echo "'avcleaner.bin' is already installed in the current directory.\n"
 else
-    echo "'avcleaner.bin' not found. Installing..."
+    echo "'avcleaner.bin' not found. Installing...\n"
 fi
 
 ## Install Mangle: 
@@ -67,7 +87,7 @@ if [ ! -f ./signature/Mangle ]; then
   cd ..
 
   # Remove the Mangle directory
-  rm -rf Mangle
+  rm -r Mangle
 fi
 
 
@@ -107,13 +127,19 @@ fi
 
 
 # Clone and build llvm-obfuscator (Akira-obfuscator)
-echo "Cloning and building Akira llvm-obfuscator..."
-git clone https://github.com/thomasxm/Akira-obfuscator.git
-cd Akira-obfuscator && mkdir -p akira_built
-cd akira_built && cmake -DCMAKE_CXX_FLAGS="" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" -G "Ninja" ../llvm
-ninja -j2
-cd .. && mv ./akira_built/ ../
+echo -e "${GREEN}[!] Install LLVM Obfuscator, it will take a while...${NC}"
 
+if [ ! -d "akira_built" ]; then
+    echo "Cloning and building Akira llvm-obfuscator..."
+    git clone https://github.com/thomasxm/Akira-obfuscator.git
+    cd Akira-obfuscator && mkdir -p akira_built
+    cd akira_built && cmake -DCMAKE_CXX_FLAGS="" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" -G "Ninja" ../llvm
+    ninja -j2
+    cd .. && mv ./akira_built/ ../
+else 
+    echo "Akira llvm-obfuscator is already installed."
+    cd ../ 
+fi
 # Locate the installed version of x86_64-w64-mingw32
 MINGW_DIR=$(ls -d /usr/lib/gcc/x86_64-w64-mingw32/*-win32 | sort -V | tail -n 1)
 
@@ -125,7 +151,6 @@ fi
 echo "Using MinGW directory: $MINGW_DIR"
 
 echo "start unit test:"
-cd ../ 
 ./akira_built/bin/clang++ -D nullptr=NULL -mllvm -irobf-indbr -mllvm -irobf-icall -mllvm -irobf-indgv -mllvm -irobf-cse -mllvm -irobf-cff -target x86_64-w64-mingw32 loader2_test.c classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o test.exe -v -L$MINGW_DIR -L./clang_test_include -I./c++/ -I./c++/mingw32/ -lws2_32 -lpsapi 
 ## if ./test.exe exists, run it with wine
 # Check if the build was successful
@@ -142,28 +167,48 @@ fi
 if [ $? -ne 0 ]; then
   echo "Error: Running test.exe with Wine failed."
   exit 1
+  ## else rm Akira-obfuscator
+else
+    rm -r Akira-obfuscator
+fi
+if [ ! -d "llvm_obfuscator_pluto" ]; then
+# Clone and build Pluto
+    echo "Cloning and building Pluto-obfuscator..."
+    git clone https://github.com/thomasxm/Pluto.git
+    cd Pluto && mkdir -p pluto_build
+    cd pluto_build
+    cmake -G Ninja -S .. -B build -DCMAKE_C_COMPILER="gcc" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_INSTALL_PREFIX="../llvm_obfuscator_pluto/" -DCMAKE_BUILD_TYPE=Release
+    ninja -j2 -C build install
+    mkdir -p ../../../llvm_obfuscator_pluto/
+    mv ./install/* ../../../llvm_obfuscator_pluto/
+    cd ../../ 
+else 
+    echo "Pluto is already installed."
+fi
+echo "start unit test:"
+./llvm_obfuscator_pluto/bin/clang++ -D nullptr=NULL -O2 -flto -fuse-ld=lld -mllvm -passes=mba,sub,idc,bcf,fla,gle -Xlinker -mllvm -Xlinker -passes=hlw,idc -target x86_64-w64-mingw32 loader2_test.c ./classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o ./notepad_llvm.exe -v -L$MINGW_DIR -L./clang_test_include -I./c++/ -I./c++/mingw32/ -lws2_32 -lpsapi
+wine ./notepad_llvm.exe
+if [ -f "./notepad_llvm.exe" ]; then
+    wine ./notepad_llvm.exe
 fi
 
-# Clone and build Pluto
-echo "Cloning and building Pluto-obfuscator..."
-git clone https://github.com/thomasxm/Pluto.git
-cd Pluto && mkdir -p pluto_build && cd pluto_build
-cmake -G Ninja -S .. -B build -DCMAKE_C_COMPILER="gcc" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_INSTALL_PREFIX="../llvm_obfuscator_pluto/" -DCMAKE_BUILD_TYPE=Release
-ninja -j2 -C build install
-mkdir -p ../../../llvm_obfuscator_pluto
-mv ./install/* ../../../llvm_obfuscator_pluto
-echo "start unit test:"
-cd ../../../ && ./llvm_obfuscator_pluto/bin/clang++ -D nullptr=NULL -O2 -flto -fuse-ld=lld -mllvm -passes=mba,sub,idc,bcf,fla,gle -Xlinker -mllvm -Xlinker -passes=hlw,idc -target x86_64-w64-mingw32 loader2_test.c ./classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o ./notepad_llvm.exe -v -L/usr/lib/gcc/x86_64-w64-mingw32/12-win32 -L./clang_test_include -I./c++/ -I./c++/mingw32/ ./normal_api.c ./sweet_sleep.c ./anti_emu.c -lws2_32 -lpsapi
-wine ./notepad_llvm.exe
-echo "Installation and setup completed!"
+# Check if the test run was successful
+if [ $? -ne 0 ]; then
+  echo "Error: Running test.exe with Wine failed."
+  exit 1
+else
+    rm -r Pluto
+fi
+
+echo -e "${GREEN}[!] Installation and setup completed! ${NC}"
 
 ## Main linker:
 ## Check if pyinstaller is installed, if not install it:
 if [ ! -f "/usr/local/bin/pyinstaller" ]; then
-    echo "Installing pyinstaller..."
+    echo -e "${YELLOW}[*] Installing pyinstaller...${NC}"
     pip3 install pyinstaller
 else
-    echo "Pyinstaller is already installed."
+    echo -e "${YELLOW}[*] Pyinstaller is already installed.${NC}"
 fi
 
 #!/bin/bash
@@ -176,14 +221,13 @@ then
     pip install pyinstaller
     if [ $? -ne 0 ]; then
         echo "Failed to install PyInstaller. Exiting."
-        exit 1
     fi
 else
     echo "PyInstaller is already installed."
 fi
 
 # Run PyInstaller to create a single executable
-echo "Running PyInstaller..."
+echo -e "${YELLOW}[*] Running PyInstaller to build ELF executable. ${NC}"
 pyinstaller --onefile Boaz.py
 
 if [ $? -eq 0 ]; then
@@ -193,5 +237,6 @@ else
     
 fi
 mv dist/Boaz .
-echo "Setup completed successfully."
-echo "Main program can be run with python3 Boaz.py or ./Boaz"
+rm -r dist/
+echo -e "${GREEN}[+] Setup completed successfully!${NC}"
+echo -e "${YELLOW}[+] Main program can be run with python3 Boaz.py or ./Boaz. ${NC}"
