@@ -32,7 +32,7 @@ This tool has an alternative use: it can function as a packer or obfuscator.
 
 - **Modular Design**: Easily extendable with new tactics and techniques by adding scripts.
 
-- **Signature Evasion**:
+- [ ] **Signature Evasion**:
     - **LLVM IR level Obfuscation**: Pluto and Akira LLVM-based obfuscation including string encryption and control flow flattening.
     - **CodeBase obfuscation**:
         - Function name and string obfuscated from chars: [0-9a-zA-Z_] by 3 randomly selected algorithms: Mt19937, MinstdRand and ranlux48_base.
@@ -67,7 +67,7 @@ This tool has an alternative use: it can function as a packer or obfuscator.
     - **Signed certificate (T1036.001)**
     - **Metadata copied from window binary (T1036)**
 
-- **Heuristic Evasion**: 
+- [ ] **Heuristic Evasion**: 
     - **Anti-Emulation (T1497)**: checks based on file system operation, process and network information and “offer you have to refuse” [15, 38]. A simple heuristic that if 2 or more checks are failed, execution will stop. 
     - **Junk API instructions (“no-op” calls, or mimicry attack)**: 5 benign API functions to vary the API call sequences 
     - **API Unhooking**:
@@ -83,7 +83,7 @@ This tool has an alternative use: it can function as a packer or obfuscator.
         - Amber (by Ege Balcı)
         - Shoggoth (by frkngksl)
           
-- **Behavioral Evasion**: 
+- [ ] **Behavioral Evasion**: 
     - **Various code execution and process injection loaders (T1055, T1106, T1027.007)**: A variety of loaders for different evasion scenarios
     - **Two LLVM-obfuscation compilers (T1027)**
     - **Output DLL/CPL (side-loading) (T1574.002, T1218.011/002)**
