@@ -1222,7 +1222,8 @@ def main():
 
 
     ## uncomment the below line to clean up obfuscation code base: 
-    # cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
+    ## you can retain them to inspect changes made. 
+    cleanup_files(output_loader_path, output_loader_path.replace('.c', '_obf.c'))
 
     ### Reduce the entropy to 6.1: 
     if args.entropy == 1:
