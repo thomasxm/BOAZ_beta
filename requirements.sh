@@ -136,9 +136,11 @@ if [ ! -d "akira_built" ]; then
     cd akira_built && cmake -DCMAKE_CXX_FLAGS="" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" -G "Ninja" ../llvm
     ninja -j2
     cd .. && mv ./akira_built/ ../
+    cd ..
+    rm -r Akira-obfuscator
 else 
-    echo "Akira llvm-obfuscator is already installed."
-    cd ../ 
+    echo -e "${RED}[!] Akira llvm-obfuscator is already installed.${NC}"
+    
 fi
 # Locate the installed version of x86_64-w64-mingw32
 MINGW_DIR=$(ls -d /usr/lib/gcc/x86_64-w64-mingw32/*-win32 | sort -V | tail -n 1)
@@ -165,12 +167,15 @@ fi
 
 # Check if the test run was successful
 if [ $? -ne 0 ]; then
-  echo "Error: Running test.exe with Wine failed."
-  exit 1
+    echo -e "${RED}[!] Error: Running test.exe with Wine failed.${NC}"
+
+    exit 1
   ## else rm Akira-obfuscator
 else
-    rm -r Akira-obfuscator
+    echo -e "${GREEN}[!] Test run was successful.${NC}"
 fi
+
+
 if [ ! -d "llvm_obfuscator_pluto" ]; then
 # Clone and build Pluto
     echo "Cloning and building Pluto-obfuscator..."
@@ -181,9 +186,11 @@ if [ ! -d "llvm_obfuscator_pluto" ]; then
     ninja -j2 -C build install
     mkdir -p ../../../llvm_obfuscator_pluto/
     mv ./install/* ../../../llvm_obfuscator_pluto/
-    cd ../../ 
+    cd ../../../ 
+    rm -r Pluto
 else 
-    echo "Pluto is already installed."
+    echo -e "${GREEN}[!] Pluto is already installed.${NC}"
+
 fi
 echo "start unit test:"
 ./llvm_obfuscator_pluto/bin/clang++ -D nullptr=NULL -O2 -flto -fuse-ld=lld -mllvm -passes=mba,sub,idc,bcf,fla,gle -Xlinker -mllvm -Xlinker -passes=hlw,idc -target x86_64-w64-mingw32 loader2_test.c ./classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o ./notepad_llvm.exe -v -L$MINGW_DIR -L./clang_test_include -I./c++/ -I./c++/mingw32/ -lws2_32 -lpsapi
@@ -194,10 +201,12 @@ fi
 
 # Check if the test run was successful
 if [ $? -ne 0 ]; then
-  echo "Error: Running test.exe with Wine failed."
-  exit 1
+    echo -e "${RED}[!] Error: Running notepad_llvm.exe with Wine failed.${NC}"
+
+    exit 1
 else
-    rm -r Pluto
+
+    echo -e "${GREEN}[!] Test run was successful.${NC}"
 fi
 
 echo -e "${GREEN}[!] Installation and setup completed! ${NC}"
