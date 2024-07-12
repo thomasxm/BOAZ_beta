@@ -320,7 +320,7 @@ I intend to name this memory guard “Sifu memory guard” to pay tribute to the
 
 ### Detection Point for Blue Team
 
-- Verify the initial `lpStartAddress` is equal to the `Rdx` value at the beginning of the `CreateThread` function and at the end of `BaseThreadInitThunk`.
+- Verify the initial `lpStartAddress` at the beginning of the `CreateThread` function is equal to the `Rdx` value at the end of `BaseThreadInitThunk`.
 
 ---
 
