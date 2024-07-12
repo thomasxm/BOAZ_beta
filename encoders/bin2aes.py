@@ -1,6 +1,18 @@
 import sys
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
+import subprocess
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+try:
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import pad
+except ImportError:
+    print("PyCryptodome is not installed. Installing now...")
+    install('pycryptodome')
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import pad
+
 from os import urandom
 import hashlib
 
