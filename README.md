@@ -107,7 +107,7 @@ cd Boaz_beta
 ```
 
 ```console
-sudo bash requirements.sh
+bash requirements.sh
 ```
 
 2. **Cavets**:
