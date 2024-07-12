@@ -216,6 +216,117 @@ options:
 ![Process_injection_101](https://github.com/thomasxm/BOAZ/assets/44269971/232e635b-b692-4010-a65d-e5ceb39c1e5e)
 
 
+## New Memory Guard
+
+### Introduction
+
+Due to the prevalence of Kernel PatchGuard, System Service Descriptor Table (SSDT) hooking has become less popular among AV companies. Userland hooks and kernel callback inspection are the two main methods adopted by contemporary AVs.
+
+### Userland Hooks
+
+- **Description**:
+  - Replace a syscall or API instruction opcode with a JMP-like instruction set to a trampoline code or memory page owned by the AV’s DLL.
+  - Inspect the passed arguments and associated memory for suspicious byte patterns.
+  - If non-suspicious bytes or a benign call stack are found, execute the replaced instructions and JMP back to the syscall location.
+  - If suspicious bytes are found, terminate the process based on the heuristic score engine.
+  - Trigger memory inspection via a kernel callback notification for process and thread creation, such as `PsSetCreateThreadNotifyRoutine`.
+
+- **Various Hooking Methods**:
+  - **IAT, EAT hooking**
+  - **Virtual Table hooking**
+  - **Inline hooking**
+  - **Detour**
+  - **Kernel mode hook**
+  - **Software breakpoints** (page guard, error exception)
+  - **Hardware breakpoints**
+
+Marcus proposed using hardware breakpoints to set up the function arguments at the desired instructions. In their example, they set up debug registers Dr0 and Dr1 at syscall and return instructions to evade Sophos Intercept X, which was known to check the Rcx register’s value in case NtSetContextThread is called. Hardware breakpoints offer flexibility in setting breakpoints at arbitrary locations while having a single point of detection. 
+
+
+### New Memory Guard Family: 
+
+The aim is to make the shellcode "non-exist" to the AV as long as possible except when it is executed in a thread.
+
+I intend to name this memory guard “Sifu memory guard” to pay tribute to the researchers who have shared their work with the community and passed their knowledge on.
+
+#### Implementation
+
+- **Tested APIs**:
+  - `NtCreateThreadEx`
+  - `RtlUserThreadStart` -> `BaseThreadInitThunk`
+  - `NtResumeThread`
+
+### NtResumeThread Technique
+
+1. **CreateThread** called at Decoy entry point and suspended.
+2. Call `NtResumeThread`.
+3. **Dr0** at syscall instruction.
+4. Change start address of thread (`lpStartAddress`) at `Rsp+0x28` from Decoy entry point to Real entry point.
+5. Encode the shellcode at Real entry point.
+6. Change memory page to `PAGE_NOACCESS`.
+7. **Dr1** at Ret instruction.
+8. Decode the shellcode at Real entry point.
+9. Change memory to `PAGE_EXECUTE_READ`.
+10. Change start address of thread (`lpStartAddress`) at `Rsp+0x28` from Real entry point to Decoy entry point.
+
+### NtCreateThreadEx Technique
+
+1. **NtCreateThreadEx** called at Decoy entry point and suspended.
+2. Call `ResumeThread`.
+3. **Dr0** at syscall instruction.
+4. Change start address of thread (`lpStartAddress`) at `Rsp+0x28` from Decoy entry point to Real entry point.
+5. Change `Rcx` -> real thread handle.
+6. Encode the shellcode at Real entry point.
+7. Change memory page to `PAGE_NOACCESS`.
+8. **Dr1** at Ret instruction.
+9. Decode the shellcode at Real entry point.
+10. Change memory to `PAGE_EXECUTE_READ`.
+11. Change start address of thread (`lpStartAddress`) at `Rsp+0x28` from Real entry point to Decoy entry point.
+12. Change `Rax` to arbitrary values, e.g., `0xC0000156 == STATUS_TOO_MANY_SECRETS`.
+
+### x64 Calling Convention
+
+- First four arguments of a callee function: `Rcx`, `Rdx`, `R8`, and `R9`.
+- Additional arguments stored on the stack starting from `(Rsp + 0x28)`.
+
+### Thread Creation API Call Sequence
+
+1. `kernel32!CreateThread` / `CreateRemoteThread`
+2. `ntdll!NtCreateThreadEx` / `ZwCreateThreadEX`
+3. `ntdll!LdrInitializeThunk`
+4. `ntdll!NtContinue`
+5. `ntdll!RtlUserThreadStart`
+6. `kernel32!BaseThreadInitThunk`
+
+### AV Inspection Points
+
+- Some AVs inspect `NtSetContextThread`,  `NtCreateThreadEx`, `CreateThread` and `RtlUserThreadStart`.
+
+### Memory Guard Steps
+
+1. Set hardware breakpoints on two debug registers from `Dr0` to `Dr3` at `ntdll!RtlUserThreadStart` and `Kernel32!BaseThreadInitThunk`.
+2. Set up an exceptional handler triggered by a call to `NtCreateThreadEx` with a decoy start address (e.g., 0X12345).
+3. Encode the real start address, changing its memory protection to `PAGE_NOACCESS` when `ntdll!RtlUserThreadStart` has `Rcx` pointed to decoy start address.
+4. Decode the real start address, changing its memory protection to `PAGE_EXECUTE_READ` when `Kernel32!BaseThreadInitThunk` has `Rdx` pointing to the decoy start address. Then, change `Rdx` to the real start address and continue execution.
+5. Change the shellcode memory to inaccessible before `RtlExitUserThread`.
+6. Return any NTSTATUS values we prefer to the calling function, for example, `0xC0000157 STATUS_SECRET_TOO_LONG`.
+
+### Additional Steps for Further Inspection
+
+1. Write a function to search for op codes `jmp r11` from only the memory of type `MEM_IMAGE` with `PAGE_EXECUTE_READ` permission and store the RoP gadget locally.
+2. Break at `Kernel32!BaseThreadInitThunk`.
+3. Change `Rdx` -> RoP gadget (trampoline code).
+4. Change `R11` -> Real start address.
+
+### Detection Point for Blue Team
+
+- Verify the initial `lpStartAddress` is equal to the `Rdx` value at the beginning of the `CreateThread` function and at the end of `BaseThreadInitThunk`.
+
+---
+
+This technique presents a **Time-of-Check to Time-of-Use (TOCTTOU) problem** that can be exploited to protect shellcode from AV and EDR memory inspection.
+TODO:
+
 ## Example:
 
 Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mimikatz is zero on Jotti:
