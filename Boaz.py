@@ -1124,6 +1124,22 @@ def main():
 
     print_selected_options(args)
 
+    if args.input_file.endswith('.bin'):
+        print("The input file ends with .bin")
+        choice = input("Choose your Position Independent Code converter:\n1) donut\n2) stardust\nEnter your choice (1 or 2): ")
+        
+        if choice == '1':
+            args.shellcode_type = 'donut'
+            print("Shellcode type set to donut.")
+        elif choice == '2':
+            args.star_dust = True
+            print("Star dust set to True.")
+        else:
+            print("Invalid choice. Default to donut.")
+            args.shellcode_type = 'donut'
+    else:
+        print("Input file is not a raw shellcode ends with .bin")
+
     # Adjust shellcode_file name based on the shellcode type
     # TODO: Add more shellcode PIC generators here:
     if args.shellcode_type == 'donut':

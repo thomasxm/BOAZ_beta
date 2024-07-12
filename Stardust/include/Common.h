@@ -49,6 +49,7 @@ typedef struct _INSTANCE {
         //
         D_API( LoadLibraryW )
         D_API( WaitForSingleObjectEx )
+        D_API( WaitForSingleObject )
         D_API( GetCurrentProcess )
 
         //
