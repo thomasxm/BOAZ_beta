@@ -636,6 +636,22 @@ def run_obfuscation(loader_path):
 
 def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulation, insert_junk_api_calls, api_unhooking=False, mllvm_options=None, god_speed=False, encoding=None, loader_number=1, dream=None, etw=False, compile_as_dll=False, compile_as_cpl = False):
 
+    
+    # Find the latest MinGW directory
+    mingw_dir_command = "ls -d /usr/lib/gcc/x86_64-w64-mingw32/*-win32 | sort -V | tail -n 1"
+    mingw_dir = subprocess.check_output(mingw_dir_command, shell=True, text=True).strip()
+
+    if not mingw_dir:
+        print("Error: No x86_64-w64-mingw32 directory found.")
+        sys.exit(1)
+
+    print(f"Using MinGW directory: {mingw_dir} \n")
+
+
+    if not mingw_dir:
+        print("Error: No x86_64-w64-mingw32 directory found.")
+        sys.exit(1)
+
     if loader_number == 1 or 39 or 40 or 41:
         try:
             subprocess.run(['nasm', '-f', 'win64', 'assembly.asm', '-o', 'assembly.o'], check=True)
@@ -644,7 +660,13 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
             print(f"[-] NASM assembly compilation failed: {e}")
             return  # Exit the function if NASM compilation fails
     
-
+    if not output_name:
+        raise ValueError("output_name is empty. Please provide a valid output name.")
+    
+    # Ensure output_name has a path
+    if not os.path.dirname(output_name):
+        output_name = "./" + output_name
+        
     output_dir = os.path.dirname(output_name)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -677,9 +699,11 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         elif compile_as_cpl:
             compile_command.append('-shared')
             output_name = output_name.replace('.exe', '.cpl')
-        compile_command.extend(['-o', output_name, '-v', '-L/usr/lib/gcc/x86_64-w64-mingw32/12-win32',
+        compile_command.extend(['-o', output_name, '-v', f'-L{mingw_dir}',
                                 '-L./clang_test_include', '-I./c++/', '-I./c++/mingw32/'])
     elif compiler == "akira":
+
+        
         # Default LLVM options for Akira
         # default_akira_options = ['-irobf-indbr', '-irobf-icall', '-irobf-indgv', '-irobf-cse', '-irobf-cff']
         # akira_options = mllvm_options if mllvm_options else default_akira_options
@@ -696,7 +720,7 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         elif compile_as_cpl:
             compile_command.append('-shared')
             output_name = output_name.replace('.exe', '.cpl')
-        compile_command.extend(['-o', output_name, '-v', '-L/usr/lib/gcc/x86_64-w64-mingw32/12-win32',
+        compile_command.extend(['-o', output_name, '-v', f'-L{mingw_dir}',
                                 '-L./clang_test_include', '-I./c++/', '-I./c++/mingw32/'])
         for option in akira_options:
             compile_command.extend(['-mllvm', option])
@@ -818,14 +842,14 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
         compile_command = ["./akira_built/bin/clang++", '-I.', '-I./converter', '-I./evader', "-D", "nullptr=NULL", "-mllvm", "-irobf-indbr", "-mllvm", "-irobf-icall",
                            "-mllvm", "-irobf-indgv", "-mllvm", "-irobf-cse", "-mllvm", "-irobf-cff", "-target", "x86_64-w64-mingw32",
                            loader_path, "./classic_stubs/syscalls.c", "./classic_stubs/syscallsstubs.std.x64.s", "-o", output_name, "-v",
-                           "-L/usr/lib/gcc/x86_64-w64-mingw32/12-win32", "-L./clang_test_include", "-I./c++/", "-I./c++/mingw32/"] + additional_sources
+                           f"-L{mingw_dir}", "-L./clang_test_include", "-I./c++/", "-I./c++/mingw32/"] + additional_sources
         subprocess.run(compile_command, check=True)
     elif compiler == "pluto":
         # Pluto-specific compilation command
         compile_command = ["./llvm_obfuscator_pluto/bin/clang++", '-I.', '-I./converter', '-I./evader', "-fms-extensions", "-D", "nullptr=NULL", "-O3", "-flto", "-fuse-ld=lld",
                            "-mllvm", "-passes=mba,sub,idc,bcf,fla,gle", "-Xlinker", "-mllvm", "-Xlinker", "-passes=hlw,idc",
                            "-target", "x86_64-w64-mingw32", loader_path, "./classic_stubs/syscalls.c", "./classic_stubs/syscallsstubs.std.x64.s", "-o", output_name, "-v",
-                           "-L/usr/lib/gcc/x86_64-w64-mingw32/12-win32", "-L./clang_test_include", "-I./c++/", "-I./c++/mingw32/"] + additional_sources
+                           f"-L{mingw_dir}", "-L./clang_test_include", "-I./c++/", "-I./c++/mingw32/"] + additional_sources
         subprocess.run(compile_command, check=True)
     elif syswhisper_option == 1:
         # Random syscall jumps compilation
