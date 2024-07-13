@@ -317,7 +317,7 @@ I intend to name this memory guard “Sifu memory guard” to pay tribute to the
 
 1. Write a function to search for op codes `jmp r11` from only the memory of type `MEM_IMAGE` with `PAGE_EXECUTE_READ` permission and store the Return-oriented programming (RoP) gadget locally.
 2. Break at `kernel32!BaseThreadInitThunk`.
-3. Change `Rdx` -> RoP gadget (trampoline code).
+3. Change `Rdx` -> RoP gadget (trampoline code) (avoid using Rip register as it is commonly inspected).
 4. Change `R11` -> Real start address.
 
 ### Detection Point for Blue Team
