@@ -323,11 +323,17 @@ I intend to name this memory guard “Sifu memory guard” to pay tribute to the
 ### Detection Point for Blue Team
 
 - Verify the initial `lpStartAddress` at the beginning of the `CreateThread` function is equal to the `Rdx` value at the end of `BaseThreadInitThunk`.
+- The order of legitimate DLL being loaded may not follow the “usual” order in InLoadOrderModuleList.
+- The use of hardware breakpoints can be easily detected, however, there are various ways to replace hardware breakpoints. 
+
 
 ---
 
 This technique presents a **Time-of-Check to Time-of-Use (TOCTTOU) problem** that can be exploited to protect shellcode from AV and EDR memory inspection.
-TODO:
+
+
+![Sifu_flow](https://github.com/user-attachments/assets/24853333-4e3a-4339-a6d1-d57741101463)
+
 
 ## Example:
 
