@@ -300,6 +300,15 @@ I intend to name this memory guard “Sifu memory guard” to pay tribute to the
 5. `ntdll!RtlUserThreadStart`
 6. `kernel32!BaseThreadInitThunk`
 
+### Resume Thread API Call Sequence
+1. `kernel32!ResumeThread`
+2. `kernelbase!ResumeThread`
+3. `ntdll!NtResumeThread`
+4. `ntdll!NtContinue`
+5. `ntdll!RtlUserThreadStart`
+6. `kernel32!BaseThreadInitThunk`
+
+
 ### AV Inspection Points
 
 - Some AVs inspect `NtSetContextThread`,  `NtCreateThreadEx`, `CreateThread` and `RtlUserThreadStart`.
