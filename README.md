@@ -332,7 +332,8 @@ I intend to name this memory guard “Sifu memory guard” to pay tribute to the
 This technique presents a **Time-of-Check to Time-of-Use (TOCTTOU) problem** that can be exploited to protect shellcode from AV and EDR memory inspection.
 
 
-![Sifu_flow](https://github.com/user-attachments/assets/24853333-4e3a-4339-a6d1-d57741101463)
+![Sifu_flow_with_background](https://github.com/user-attachments/assets/adaeb9b3-7c28-47fb-a590-096c9a125568)
+
 
 
 ## Example:
