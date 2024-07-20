@@ -209,6 +209,7 @@ options:
 
 ![Evasion101 (1)](https://github.com/thomasxm/Boaz_beta/assets/44269971/e5fd38a1-fd95-47f9-a7b0-e85710596902)
 
+![layered](https://github.com/user-attachments/assets/b42a7ab9-7a14-4b16-8538-df20a334e234)
 
 
 ## Process Injection Loaders
