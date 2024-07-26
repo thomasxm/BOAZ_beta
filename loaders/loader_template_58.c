@@ -2379,47 +2379,47 @@ searchParams)
 
 
 void *GetNtdllBase() {
-    void *ntdllBase = NULL;
-    PPEB_LDR_DATA ldr = NULL;
-    PPEB pPEB = NULL;
-    PLDR_DATA_TABLE_ENTRY_FREE dte = NULL;
 
+    //1st method: 
+    // void *ntdllBase = NULL;
+    // PPEB_LDR_DATA ldr = NULL;
+    // PPEB pPEB = NULL;
+
+    /// get PEB: 
     // #ifdef _WIN64
     //     pPEB = (PPEB)__readgsqword(0x60); // Read PEB address from the GS segment register
     // #else
     //     pPEB = (PPEB)__readfsdword(0x30); // Read PEB address from the FS segment register
     // #endif
 
-    // Use assembly to do it: 
-    #ifdef _WIN64
-        __asm__ volatile (
-            "movq %%gs:0x60, %0"
-            : "=r" (pPEB)
-        );
-    #else
-        __asm__ volatile (
-            "movl %%fs:0x30, %0"
-            : "=r" (pPEB)
-        );
-    #endif
-
-    DWORD64 qwNtdllBase = (DWORD64)pPEB->Ldr & ~(0x10000 - 1);
-
-    while (1) {
-        IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)qwNtdllBase;
-        if (dosHeader->e_magic == IMAGE_DOS_SIGNATURE) {
-            IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)(qwNtdllBase + dosHeader->e_lfanew);
-            if (ntHeaders->Signature == IMAGE_NT_SIGNATURE) {
-                printf("[+] Ntdll base address found: %p\n", (void*)qwNtdllBase);
-                return (ADDR*)qwNtdllBase;
-            }
-        }
-        qwNtdllBase -= 0x10000;
-        if (qwNtdllBase == 0) {
-            printf("[-] Ntdll base address not found\n");
-            return NULL;
-        }
-    }
+    // #ifdef _WIN64
+    //     __asm__ volatile (
+    //         "movq %%gs:0x60, %0" // Read PEB address from the GS segment register
+    //         : "=r" (pPEB)
+    //     );
+    // #else
+    //     __asm__ volatile (
+    //         "movl %%fs:0x30, %0" // Read PEB address from the FS segment register
+    //         : "=r" (pPEB)
+    //     );
+    // #endif
+    // // Walk PEB: 
+    // DWORD64 qwNtdllBase = (DWORD64)pPEB->Ldr & ~(0x10000 - 1); //Align the Ldr addr to 64kb boundary. 
+    // while (1) {
+    //     IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)qwNtdllBase;
+    //     if (dosHeader->e_magic == IMAGE_DOS_SIGNATURE) { // contain valid DOS header? 
+    //         IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)(qwNtdllBase + dosHeader->e_lfanew);
+    //         if (ntHeaders->Signature == IMAGE_NT_SIGNATURE) {  //Valid NT header? 
+    //             printf("[+] Ntdll base address found: %p\n", (void*)qwNtdllBase); //First valid module is ntdll.dll
+    //             return (ADDR*)qwNtdllBase;
+    //         }
+    //     }
+    //     qwNtdllBase -= 0x10000; //Windows loader aligns DLLs to 64kb boundary to simplify address space layout. 
+    //     if (qwNtdllBase == 0) {
+    //         printf("[-] Ntdll base address not found\n");
+    //         return NULL;
+    //     }
+    // }
 
     //2nd: 
     // while (1) {
@@ -2439,15 +2439,61 @@ void *GetNtdllBase() {
     // }
 
     
+    //2nd method: 
+    void *ntdllBase = NULL;
+    PPEB_LDR_DATA ldr = NULL;
+    PPEB pPEB = NULL;
+    PLDR_DATA_TABLE_ENTRY_FREE dte = NULL;
 
-    // // Get PEB_LDR_DATA
-    // ldr = pPEB->Ldr;
+    #ifdef _WIN64
+        __asm__ volatile (
+            "movq %%gs:0x60, %0" // Read PEB address from the GS segment register
+            : "=r" (pPEB)
+        );
+    #else
+        __asm__ volatile (
+            "movl %%fs:0x30, %0" // Read PEB address from the FS segment register
+            : "=r" (pPEB)
+        );
+    #endif
 
-    // // Get first entry
-    // dte = (PLDR_DATA_TABLE_ENTRY)ldr->InMemoryOrderModuleList.Flink;
+    // Get PEB_LDR_DATA
+    ldr = pPEB->Ldr;
 
-    // // Get ntdll base
-    // ntdllBase = dte->DllBase;
+    // // Iterate through InMemoryOrderModuleList to find ntdll.dll
+    // LIST_ENTRY* head = &ldr->InMemoryOrderModuleList;
+    // LIST_ENTRY* current = head->Flink;
 
-    // return ntdllBase;
+    // while (current != head) {
+    //     dte = CONTAINING_RECORD(current, LDR_DATA_TABLE_ENTRY_FREE, InMemoryOrderLinks);
+
+    //     // Print the base address and name of each module
+    //     wprintf(L"Module: %ls, Base Address: %p\n", dte->BaseDllName.Buffer, dte->DllBase);
+
+    //     // Check if the BaseDllName matches "ntdll.dll"
+    //     if (wcscmp(dte->BaseDllName.Buffer, L"ntdll.dll") == 0) {
+    //         ntdllBase = dte->DllBase;
+    //         break;
+    //     }
+
+    //     current = current->Flink;
+    // }
+
+    // Get the first entry (the application itself)
+    LIST_ENTRY* firstEntry = ldr->InMemoryOrderModuleList.Flink;
+    // Get the second entry (ntdll.dll)
+    LIST_ENTRY* secondEntry = firstEntry->Flink;
+
+    // Get the LDR_DATA_TABLE_ENTRY_FREE for ntdll.dll
+    dte = CONTAINING_RECORD(secondEntry, LDR_DATA_TABLE_ENTRY_FREE, InMemoryOrderLinks);
+
+    ntdllBase = dte->DllBase;
+
+    if (ntdllBase != NULL) {
+        printf("[+] Ntdll base address found: %p\n", ntdllBase);
+    } else {
+        printf("[-] Ntdll base address not found\n");
+    }
+
+    return (ADDR*)ntdllBase;
 }
