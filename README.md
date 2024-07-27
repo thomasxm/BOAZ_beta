@@ -348,7 +348,8 @@ This technique presents a **Time-of-Check to Time-of-Use (TOCTTOU) problem** tha
 
 ## Example:
 
-Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mimikatz is zero on Jotti:
+Boaz evasion wrapped Mimikatz.exe x64 release. The detection rate for wrapped Mimikatz is zero on Jotti: 
+
 <img width="1197" alt="Screenshot 2024-02-28 at 14 46 17" src="https://github.com/user-attachments/assets/312fdffe-7024-4e21-8830-07bcea3004c9">
 
 
