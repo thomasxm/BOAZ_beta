@@ -243,7 +243,7 @@ Due to the prevalence of Kernel PatchGuard, System Service Descriptor Table (SSD
   - **Software breakpoints** (page guard, error exception)
   - **Hardware breakpoints**
 
-Marcus proposed using hardware breakpoints to set up the function arguments at the desired instructions. In their example, they set up debug registers Dr0 and Dr1 at syscall and return instructions to evade Sophos Intercept X, which was known to check the Rcx register’s value in case NtSetContextThread is called. Hardware breakpoints offer flexibility in setting breakpoints at arbitrary locations while having a single point of detection. 
+Marcus proposed using hardware breakpoints to set up the function arguments at the desired instructions. In their example, they set up debug registers Dr0 and Dr1 at syscall and return instructions to evade Sophos Intercept X, which was known to check the Rcx register’s value in case NtSetContextThread is called. Hardware breakpoints offer flexibility in setting breakpoints at arbitrary locations while having a single point of detection. Other method to trigger the exception available are x86matthew's stealth hook.
 
 
 ### New Memory Guard Family: 
@@ -329,6 +329,11 @@ I intend to name this memory guard “Sifu memory guard” to pay tribute to the
 2. Break at `kernel32!BaseThreadInitThunk`.
 3. Change `Rdx` -> RoP gadget (trampoline code) (avoid using Rip register as it is commonly inspected).
 4. Change `R11` -> Real start address.
+
+### Choice of set exception hanlders:
+- Vectored Exception Handlers (VEH, AddVectoredExceptionHandler)
+- SetUnhandledExceptionFilter
+- Structured Exception Handling (SEH, __try, __except, and __finally)
 
 ### Detection Point for Blue Team
 
