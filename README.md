@@ -6,7 +6,7 @@
 
 <img width="352" alt="small_logo" src="https://github.com/thomasxm/Boaz_beta/assets/44269971/99abcf82-7084-47e5-a993-2a712b4ca664">
 
-# BOAZ Evasion Tool (for educational purpose)
+# BOAZ Evasion and Antivirus Testing Tool (for educational purpose)
 
 
 
