@@ -18,9 +18,9 @@
 ## Presentation
 
 1. [BlackHat USA, 2024 - Arsenal](https://www.blackhat.com/us-24/arsenal/schedule/index.html#boaz-yet-another-layered-evasion-tool-evasion-tool-evaluations-and-av-testing-38960)
-2. [DEF CON Red Team Village - Haven (Track 1)] (https://redteamvillage.io/schedule.html)
+2. [DEF CON Red Team Village - Haven Track 1](https://redteamvillage.io/schedule.html)
 
-Special thanks to Professor Rich Macfarlane @rjmacfarlane (https://www.napier.ac.uk/people/rich-macfarlane)
+Special thanks to Professor Rich Macfarlane @rjmacfarlane(https://x.com/rjmacfarlane?lang=en)(https://www.napier.ac.uk/people/rich-macfarlane)
 
 ## Description
 
