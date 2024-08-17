@@ -15,6 +15,13 @@
 
 [Features](#Features) | [Installation](#installation) | [Usage](#Usage) | [Evasion Module](#evasion-modules)
 
+## Presentation
+
+1. [BlackHat USA, 2024 - Arsenal](https://www.blackhat.com/us-24/arsenal/schedule/index.html#boaz-yet-another-layered-evasion-tool-evasion-tool-evaluations-and-av-testing-38960)
+2. [DEF CON Red Team Village - Haven (Track 1)] (https://redteamvillage.io/schedule.html)
+
+Special thanks to Professor Rich Macfarlane @rjmacfarlane (https://www.napier.ac.uk/people/rich-macfarlane)
+
 ## Description
 
 BOAZ (Bypass, Obfuscate, Adapt, Zero-Trust) evasion was inspired by the concept of multi-layered approach which is the evasive version of defence-in-depth ([Swinnen & Mesbahi, 2014](https://www.blackhat.com/docs/us-14/materials/us-14-Mesbahi-One-Packer-To-Rule-Them-All.pdf)). It was developed to aid the security testing and antivirus defence evaluation. 
