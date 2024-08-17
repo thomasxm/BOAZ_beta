@@ -1048,12 +1048,14 @@ def main():
     54. Stealth new loader + Exception handler + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
     56. This is a fork of Loader 37 with additional features. If -ldr flag is not provided, loader will add module (contains the shellcode) to the PEB module lists manually using code from Dark library. 
     57. A fork of loader 51 with XOR replaced with RC4 encryption offered by SystemFunction032/033.
-    58.
-    59. 
+    58. VEH add hanlder. Add ROP Trampoliine to the kernel32!BaseThreadInitThunk for additional complexity to analyse. 
+    59. SEH add hanlder. Add ROP Trampoliine to the kernel32!BaseThreadInitThunk for additional complexity to analyse.
     60. Use Page guard to trigger first exception to set debug registers without using NtGetContextThread --> NtSetContextThread
     61. Use Page guard to trigger first exception to set debug registers without using NtGetContextThread --> NtSetContextThread + Use VEH to set up breakpoints Dr0~Dr3, Dr7. Then use VCH to execute the code. So, no registers and stack pointer and instruction pointer changed in VEH. 
     62. New loader in progress.
     63. Remote version of custom module loading loader 37. Remote module injection.
+    64.
+    65. Advanced VMT hooking with custom module loader 37. 
 
      """
 

