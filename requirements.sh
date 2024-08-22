@@ -22,7 +22,6 @@ case $yn in
 esac
 
  
-sudo apt install 
 sudo apt install osslsigncode -y
 pip3 install pyopenssl
 sudo apt install build-essential -y
@@ -34,6 +33,7 @@ sudo apt install -y ninja-build
 sudo apt install -y python3
 sudo apt install -y gcc
 sudo apt install -y g++
+sudo apt install -y libz3-dev 
 sudo apt install -y zlib1g-dev
 sudo apt install -y wine
 sudo apt install -y mingw-w64
