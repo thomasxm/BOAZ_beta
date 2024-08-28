@@ -428,6 +428,7 @@ WORD GetsyscallNum(LPVOID addr) {
 
     }
 
+    // Detects if 1st, 3rd, 8th, 10th, 12th instruction is a JMP
     if (*((PBYTE)addr) == 0xe9 || *((PBYTE)addr + 3) == 0xe9 || *((PBYTE)addr + 8) == 0xe9 ||
         *((PBYTE)addr + 10) == 0xe9 || *((PBYTE)addr + 12) == 0xe9) {
 
@@ -479,6 +480,8 @@ DWORD64 GetsyscallInstr(LPVOID addr) {
         return (INT_PTR)addr + 0x12;    // syscall
 
     }
+
+    // Detects if 1st, 3rd, 8th, 10th, 12th instruction is a JMP
 
     if (*((PBYTE)addr) == 0xe9 || *((PBYTE)addr + 3) == 0xe9 || *((PBYTE)addr + 8) == 0xe9 ||
         *((PBYTE)addr + 10) == 0xe9 || *((PBYTE)addr + 12) == 0xe9) {
