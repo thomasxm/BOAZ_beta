@@ -228,8 +228,8 @@ typedef struct _PEB2
             BOOLEAN IsAppContainer : 1;
             BOOLEAN IsProtectedProcessLight : 1;
             BOOLEAN IsLongPathAwareProcess : 1;
-        };
-    };
+        } s1;
+    } u1;
 
     HANDLE Mutant;
 
@@ -254,15 +254,23 @@ typedef struct _PEB2
             ULONG ProcessUsingFTH : 1;
             ULONG ProcessPreviouslyThrottled : 1;
             ULONG ProcessCurrentlyThrottled : 1;
-            ULONG ProcessImagesHotPatched : 1; // REDSTONE5
+            ULONG ProcessImagesHotPatched : 1; 
             ULONG ReservedBits0 : 24;
-        };
-    };
+			// ULONG ProcessInJob : 1;
+			// ULONG ProcessInitializing : 1;
+			// ULONG ProcessUsingVEH : 1;
+			// ULONG ProcessUsingVCH : 1;
+			// ULONG ProcessUsingFTH : 1;
+			// ULONG ProcessPreviouslyThrottled : 1;
+			// ULONG ProcessCurrentlyThrottled : 1;
+			// ULONG ReservedBits0 : 25;
+        } s2;
+    } u2;
     union
     {
         PVOID KernelCallbackTable;
         PVOID UserSharedInfoPtr;
-    };
+    } u3;
     ULONG SystemReserved;
     ULONG AtlThunkSListPtr32;
     PAPI_SET_NAMESPACE ApiSetMap;
