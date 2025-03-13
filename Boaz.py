@@ -812,7 +812,7 @@ def run_obfuscation(loader_path):
         else:
             print(f"Expected patch file not found: {patch_file}. Obfuscation may have failed.")
     except subprocess.CalledProcessError as e:
-        print(f"[*] Some Obfuscation steps have not completed with {e}. But do not worry, proceeding with the next steps.")
+        print(f"Warning: Obfuscation step has some errors {e}. But do not worry, proceeding with the next steps.")
         # Since obf_file is now defined outside of the try block, it can be safely used here
         if os.path.exists(patch_file):
             os.rename(patch_file, obf_file)
@@ -866,13 +866,13 @@ def compile_output(loader_path, output_name, compiler, sleep_flag, anti_emulatio
     elif compiler == "pluto":
         # Default LLVM passes for Pluto, if any, can be specified here
         mllvm_passes = ','.join(mllvm_options) if mllvm_options else ""
-        # compile_command = ['./llvm_obfuscator_pluto/bin/clang++', '-O3', '-flto', '-fuse-ld=lld',
+        # compile_command = ['./Pluto/llvm_obfuscator_pluto/bin/clang++', '-O3', '-flto', '-fuse-ld=lld',
         #                    '-mllvm', f'-passes={mllvm_passes}',
         #                    '-Xlinker', '-mllvm', '-Xlinker', '-passes=hlw,idc',
         #                    '-target', 'x86_64-w64-mingw32', loader_path,
         #                    '-o', output_name, '-v', '-L/usr/lib/gcc/x86_64-w64-mingw32/12-win32',
         #                    '-L./clang_test_include', '-I./c++/', '-I./c++/mingw32/']
-        compile_command = ['./llvm_obfuscator_pluto/bin/clang++', '-I.', '-I./converter', '-I./evader', '-O1', '-flto', '-fuse-ld=lld',
+        compile_command = ['./Pluto/llvm_obfuscator_pluto/bin/clang++', '-I.', '-I./converter', '-I./evader', '-O1', '-flto', '-fuse-ld=lld',
                         '-mllvm', f'-passes={mllvm_passes}',
                         '-Xlinker', '-mllvm', '-Xlinker', '-passes=hlw,idc',
                         '-target', 'x86_64-w64-mingw32', '-I.', '-I./converter', '-I./evader', loader_path]
@@ -1054,7 +1054,7 @@ def compile_with_syswhisper(loader_path, output_name, syswhisper_option, sleep_f
         subprocess.run(compile_command, check=True)
     elif compiler == "pluto":
         # Pluto-specific compilation command
-        compile_command = ["./llvm_obfuscator_pluto/bin/clang++", '-I.', '-I./converter', '-I./evader', "-fms-extensions", "-D", "nullptr=NULL", "-O1", "-flto", "-fuse-ld=lld",
+        compile_command = ["./Pluto/llvm_obfuscator_pluto/bin/clang++", '-I.', '-I./converter', '-I./evader', "-fms-extensions", "-D", "nullptr=NULL", "-O1", "-flto", "-fuse-ld=lld",
                            "-mllvm", "-passes=mba,sub,idc,bcf,fla,gle", "-Xlinker", "-mllvm", "-Xlinker", "-passes=hlw,idc",
                            "-target", "x86_64-w64-mingw32", loader_path, "./classic_stubs/syscalls.c", "./classic_stubs/syscallsstubs.std.x64.s", "-o", output_name, "-v",
                            f"-L{mingw_dir}", "-L./clang_test_include", "-I./c++/", "-I./c++/mingw32/"] + additional_sources
