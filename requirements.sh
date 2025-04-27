@@ -39,6 +39,7 @@ sudo apt install -y wine
 sudo apt install -y mingw-w64
 sudo apt install -y mingw-w64-tools
 sudo apt install -y x86_64-w64-mingw32-g++
+sudo apt install -y nasm
 sudo dpkg --add-architecture i386
 apt-get install wine32:i386
 
@@ -176,42 +177,24 @@ else
 fi
 
 
-#!/bin/bash
 if [ ! -d "llvm_obfuscator_pluto" ]; then
 # Clone and build Pluto
     echo "Cloning and building Pluto-obfuscator..."
     git clone https://github.com/thomasxm/Pluto.git
     cd Pluto && mkdir -p pluto_build
     cd pluto_build
-    
-    # cmake -G Ninja -S .. -B build \
-    #     -DCMAKE_C_COMPILER="gcc" -DCMAKE_CXX_COMPILER="g++" \
-    #     -DCMAKE_CXX_STANDARD=14 \  # Force C++14
-    #     -DCMAKE_INSTALL_PREFIX="../llvm_obfuscator_pluto/" \
-    #     -DCMAKE_BUILD_TYPE=Release \
-    #     -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;Mips" \
-    #     -DLLVM_ENABLE_PROJECTS="clang"
-
     cmake -G Ninja -S .. -B build -DCMAKE_C_COMPILER="gcc" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_INSTALL_PREFIX="../llvm_obfuscator_pluto/" -DCMAKE_BUILD_TYPE=Release
     ninja -j2 -C build install
     mkdir -p ../../../llvm_obfuscator_pluto/
-    mv ../llvm_obfuscator_pluto ../../
-    cd ../../
-
-    if [ -f "./llvm_obfuscator_pluto/bin/clang++" ]; then
-        echo "Pluto installed successfully."
-        # rm -r Pluto
-    else
-        echo "Error: Pluto installation failed."
-        # exit 1
-    fi
-
+    mv ./install/* ../../../llvm_obfuscator_pluto/
+    cd ../../../ 
+    rm -r Pluto
 else 
     echo -e "${GREEN}[!] Pluto is already installed.${NC}"
-fi
 
+fi
 echo "start unit test:"
-./llvm_obfuscator_pluto/bin/clang++ -D nullptr=NULL -O2 -flto -fuse-ld=lld -mllvm -passes=mba,sub,idc,bcf,fla,gle -Xlinker -mllvm -Xlinker -passes=hlw,idc -target x86_64-w64-mingw32 loader2_test.c ./classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o ./notepad_llvm.exe -v -L$MINGW_DIR -L./clang_test_include -I./c++/ -I./c++/mingw32/ -lws2_32 -lpsapi
+./Pluto/llvm_obfuscator_pluto/bin/clang++ -D nullptr=NULL -O2 -flto -fuse-ld=lld -mllvm -passes=mba,sub,idc,bcf,fla,gle -Xlinker -mllvm -Xlinker -passes=hlw,idc -target x86_64-w64-mingw32 loader2_test.c ./classic_stubs/syscalls.c ./classic_stubs/syscallsstubs.std.x64.s -o ./notepad_llvm.exe -v -L$MINGW_DIR -L./clang_test_include -I./c++/ -I./c++/mingw32/ -lws2_32 -lpsapi
 wine ./notepad_llvm.exe
 if [ -f "./notepad_llvm.exe" ]; then
     wine ./notepad_llvm.exe
