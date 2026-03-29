@@ -11,7 +11,7 @@ RUN echo "deb http://http.kali.org/kali kali-rolling main non-free contrib" > /e
     wine64 wine32:i386 \
     gcc-mingw-w64 g++-mingw-w64 mingw-w64 \
     binutils-mingw-w64 curl unzip ninja-build clang nasm \
-    gcc-multilib g++-multilib
+    gcc-multilib g++-multilib sudo
 
     
 RUN mkdir -p /usr/lib/gcc/x86_64-w64-mingw32/12-win32
