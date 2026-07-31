@@ -470,6 +470,7 @@ All credit goes to the original authors of the techniques and tools:
 * [PE2Shellcode](https://github.com/r00tkiter/PE2Shellcode)
 * [Amber](https://github.com/thomasxm/amber)
 * [Shoggoth](https://github.com/frkngksl/Shoggoth)
+* [Darkmoon](https://github.com/ASCIT31/Dark-Moon) - an open source (GPL-3.0) autonomous AI penetration testing platform for web, API, Active Directory and Kubernetes.
 * [Mangle](https://github.com/optiv/Mangle)
 * [CallObfuscator](https://github.com/d35ha/CallObfuscator)
 * [Stardust](https://github.com/Cracked5pider/Stardust/tree/main)
